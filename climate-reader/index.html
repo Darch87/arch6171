@@ -1,0 +1,716 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Climate Reader</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column workbook; sticky tab bar; each chart is a guess-then-reveal card */
+:root{
+  --bg:#f4f7f8; --panel:#ffffff; --ink:#18262c; --muted:#4f6168; --line:#d3dde0;
+  --accent:#1d5f8f; --accent-soft:#e2eef7; --sun:#c96a17; --sun-soft:#fbecdc;
+  --ok:#2e7d4f; --warn:#a15c00; --guess:#c43d6b;
+  --s-solar:#d98a1f; --s-gain:#b5651d; --s-mass:#7b5ea7; --s-flush:#4b3f8f; --s-vent:#2a8c8c; --s-evap:#3c78c8; --s-shade:#8a8f2a; --s-comfort:#2e7d4f;
+  --f-head:"Archivo",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11191c; --panel:#18232700; --panel:#182327; --ink:#e7eef0; --muted:#a6b6bb; --line:#2f3f45;
+  --accent:#6fb0e0; --accent-soft:#1c3346; --sun:#f0a35a; --sun-soft:#3a2a19; --ok:#6cc08f; --warn:#e6a64a; --guess:#f07fa4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11191c; --panel:#182327; --ink:#e7eef0; --muted:#a6b6bb; --line:#2f3f45;
+  --accent:#6fb0e0; --accent-soft:#1c3346; --sun:#f0a35a; --sun-soft:#3a2a19; --ok:#6cc08f; --warn:#e6a64a; --guess:#f07fa4; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);margin:0}
+.wrap{max-width:1040px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-head);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:1.9rem} h2{font-size:1.35rem} h3{font-size:1.1rem}
+p{margin:0}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.place{font-family:var(--f-mono);font-size:.95rem;color:var(--muted)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:18px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav.tabs button{font:600 .95rem var(--f-body);padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+nav.tabs button:disabled{opacity:.55;cursor:not-allowed}
+nav.tabs .v2{font:500 .7rem var(--f-mono);margin-left:4px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{padding:9px 16px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px;min-width:0}
+.stack{display:grid;gap:18px}
+.label{font:600 .75rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.clue{background:var(--sun-soft);border-radius:8px;padding:10px 12px}
+.hint{background:var(--accent-soft);border-radius:8px;padding:10px 12px;display:grid;gap:8px}
+.hint textarea{width:100%;min-height:58px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--panel)}
+.src{font-size:.85rem;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
+.chart .lbl{fill:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.chips button[aria-pressed="true"]{border-color:var(--guess);background:var(--guess);color:#fff}
+.result{font-weight:600}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;display:grid;gap:10px}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+input[type=text],input[type=number]{border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+th{font:600 .8rem var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tw{overflow-x:auto}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.bar>i{display:block;height:100%}
+.pick{font:600 .75rem var(--f-mono);color:var(--guess)}
+.note{font-size:.9rem;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.unit{display:flex;gap:4px}
+.unit button{padding:4px 10px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer}
+.unit button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.check li{margin:2px 0}
+.ok{color:var(--ok)} .no{color:var(--warn)}
+.code{font:600 1.1rem var(--f-mono);letter-spacing:.12em}
+.kit{display:grid;gap:16px}
+@media print{
+  nav.tabs,.top .unit,.noprint,body::before{display:none!important}
+  body{background:#fff;color:#000;font-size:11pt}
+  section[data-tab]{display:none!important}
+  section[data-tab="export"]{display:block!important}
+  .card{break-inside:avoid;border-color:#bbb}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="label">ARCH 6171 · M1 Lab 1</div>
+      <h1>Climate Reader</h1>
+    </div>
+    <div class="row">
+      <span class="place" id="placeLine">No weather file loaded</span>
+      <div class="unit" role="group" aria-label="Temperature unit">
+        <button id="uF" aria-pressed="true">°F</button><button id="uC" aria-pressed="false">°C</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Steps">
+    <button role="tab" data-go="load" aria-selected="true">1 Load</button>
+    <button role="tab" disabled title="Coming in version 2">Map<span class="v2">v2</span></button>
+    <button role="tab" data-go="charts" aria-selected="false">2 Charts</button>
+    <button role="tab" data-go="strategies" aria-selected="false">3 Strategies</button>
+    <button role="tab" disabled title="Coming in version 2">Case studies<span class="v2">v2</span></button>
+    <button role="tab" disabled title="Coming in version 2">Future<span class="v2">v2</span></button>
+    <button role="tab" data-go="export" aria-selected="false">4 Export</button>
+  </nav>
+
+  <!-- LOAD -->
+  <section data-tab="load" class="stack">
+    <div class="card">
+      <h2>Load a weather file</h2>
+      <p>Download your city's EPW file from climate.onebuilding.org (North America, then USA, then your state; pick the newest TMYx file for the main airport and unzip it). Then drop the .epw file here. Everything runs in your browser. Nothing is uploaded.</p>
+      <div class="row">
+        <label for="studentName"><b>Your name</b></label>
+        <input type="text" id="studentName" placeholder="First Last" autocomplete="name">
+      </div>
+      <div class="drop" id="drop">
+        <b>Drop an .epw weather file or a saved .json session here</b>
+        <div class="row" style="justify-content:center">
+          <label class="btn" for="fileIn" tabindex="0">Choose file</label>
+          <input type="file" id="fileIn" accept=".epw,.json" hidden>
+          <button class="btn ghost" id="sampleBtn">Use the sample (Golden, CO)</button>
+        </div>
+        <p class="note" id="loadMsg">The sample is an example for trying the tool. Use your own city's file for the quiz and Denver's for the lab.</p>
+      </div>
+    </div>
+    <div class="card" id="summaryCard" hidden>
+      <h2>At a glance</h2>
+      <div class="tw"><table id="summary"></table></div>
+      <p class="note">Climate zone number comes from heating and cooling degree days (ASHRAE 169 thresholds). The letter (A humid, B dry, C marine) needs rainfall, which the map tab adds in version 2.</p>
+      <div class="row"><button class="btn" data-next="charts">Start reading the charts</button></div>
+    </div>
+  </section>
+
+  <!-- CHARTS -->
+  <section data-tab="charts" class="stack" hidden>
+    <p class="note">For each chart: read the clue, make your guess, then reveal. Guesses are not graded; answer the hint question in one line.</p>
+    <div id="chartCards" class="stack"></div>
+    <div class="row"><button class="btn" data-next="strategies">Next: pick your strategies</button></div>
+  </section>
+
+  <!-- STRATEGIES -->
+  <section data-tab="strategies" class="stack" hidden>
+    <div class="card">
+      <h2>Pick your top 3 passive strategies</h2>
+      <p>Based on the charts, which three would do the most for this climate? Pick three, then reveal the psychrometric chart's ranking.</p>
+      <div class="chips" id="stratPicks"></div>
+      <div class="row"><button class="btn" id="stratReveal" disabled>Reveal ranking</button><span class="note" id="pickCount">0 of 3 picked</span></div>
+    </div>
+    <div class="card" id="stratResult" hidden>
+      <h2>What the chart says</h2>
+      <div class="chips" id="zoneToggles" aria-label="Show zones"></div>
+      <svg class="chart" id="psyStrat" viewBox="0 0 760 430" role="img" aria-label="Psychrometric chart with strategy zones"></svg>
+      <div class="tw"><table id="rankTable"></table></div>
+      <p class="note">Each strategy is counted on its own, so the percentages overlap. Zone boundaries are approximate, after the Givoni and Milne building bioclimatic chart (Lechner, <i>Heating, Cooling, Lighting</i>, fig 5.10). Thermal mass zones only count days with a daily swing of 10 °C (18 °F) or more.</p>
+      <div class="hint">
+        <b>Hint question</b>
+        <span>Which of your picks matched the chart, and which strategy's disadvantages could rule it out here anyway?</span>
+        <span class="src">Studio Companion S4.3, p 221; Green Studio Handbook p 383</span>
+        <textarea id="ans-strat" aria-label="Your answer"></textarea>
+      </div>
+      <div class="row"><button class="btn" data-next="export">Next: export your climate kit</button></div>
+    </div>
+  </section>
+
+  <!-- EXPORT -->
+  <section data-tab="export" class="stack" hidden>
+    <div class="card noprint">
+      <h2>Export</h2>
+      <p>Save the climate kit as a PDF (your browser's print dialog, then "Save as PDF"), the sun chart for your drawings, and a session file so you can reopen this run later.</p>
+      <div class="row">
+        <button class="btn" id="pdfBtn">Save climate kit PDF</button>
+        <button class="btn ghost" id="svgBtn">Sun chart SVG</button>
+        <button class="btn ghost" id="dxfBtn">Sun chart DXF</button>
+        <button class="btn ghost" id="saveBtn">Save session file</button>
+      </div>
+      <p class="note" id="exportMsg">DXF opens in AutoCAD, Rhino and Illustrator (1 unit = 1° of altitude; north is up).</p>
+    </div>
+    <div class="kit" id="kit"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- state ---------- */
+const S = { unit:"F", data:null, loc:null, fileName:"", guesses:{}, answers:{}, picks:[], revealed:{}, stratRevealed:false, zonesOn:null };
+const $ = s=>document.querySelector(s);
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MDAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+const NS="http://www.w3.org/2000/svg";
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- units ---------- */
+const tC2=v=>S.unit==="F"? v*9/5+32 : v;
+const dC2=v=>S.unit==="F"? v*9/5 : v;      // temperature difference
+const uT=()=>S.unit==="F"?"°F":"°C";
+const fmt=(v,d=0)=>Number.isFinite(v)? v.toFixed(d):"–";
+
+/* ---------- psychrometrics (pressure in kPa) ---------- */
+const pws=T=>0.61094*Math.exp(17.625*T/(T+243.04));            // kPa
+const Wfrom=(pv,P)=>622*pv/(P-pv);                              // g/kg
+const Wsat=(T,P)=>Wfrom(pws(T),P);
+const Wrh=(T,rh,P)=>Wfrom(pws(T)*rh/100,P);
+function Wwb(T,Twb,P){const Ws=Wsat(Twb,P)/1000;return 1000*((2501-2.326*Twb)*Ws-1.006*(T-Twb))/(2501+1.86*T-4.186*Twb);}
+function wetBulb(T,W,P){let lo=-40,hi=T;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(Wwb(T,m,P)>W)hi=m;else lo=m;}return (lo+hi)/2;}
+
+/* ---------- strategy zones (approximate Givoni/Milne) ---------- */
+const ZONES=[
+ {id:"comfort",name:"Comfort zone",col:"--s-comfort",t0:20,t1:26,wMax:12,rhMax:80,base:true},
+ {id:"gain",name:"Internal heat gains",col:"--s-gain",t0:13,t1:20,wMax:12},
+ {id:"solar",name:"Passive solar heating",col:"--s-solar",t0:7,t1:13,wMax:12},
+ {id:"mass",name:"High thermal mass",col:"--s-mass",t0:26,t1:34,wMax:13,swing:true},
+ {id:"flush",name:"Thermal mass + night flush",col:"--s-flush",t0:26,t1:37,wMax:13,swing:true},
+ {id:"vent",name:"Natural ventilation",col:"--s-vent",t0:26,t1:32,wMax:20,rhMax:90},
+ {id:"evap",name:"Evaporative cooling",col:"--s-evap",t0:26,t1:43,wbMax:21},
+ {id:"shade",name:"Sun shading of windows",col:"--s-shade",shade:true}
+];
+const STRATS=ZONES.filter(z=>!z.base);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function inZone(z,h,d){
+  if(z.shade) return h.T>=24 && h.ghi>0;
+  if(h.T<z.t0||h.T>z.t1) return false;
+  if(z.wMax!=null && h.W>z.wMax) return false;
+  if(z.rhMax!=null && h.rh>z.rhMax) return false;
+  if(z.wbMax!=null && h.Twb>z.wbMax) return false;
+  if(z.swing && d.swing[h.day]<10) return false;
+  return true;
+}
+function zoneUpper(z,T,P){
+  let w=Wsat(T,P);
+  if(z.wMax!=null) w=Math.min(w,z.wMax);
+  if(z.rhMax!=null) w=Math.min(w,Wrh(T,z.rhMax,P));
+  if(z.wbMax!=null) w=Math.min(w,Math.max(0,Wwb(T,z.wbMax,P)));
+  return w;
+}
+
+/* ---------- sun position (NOAA) ---------- */
+function sunPos(doy,hourLST,lat,lon,tz){
+  const r=Math.PI/180, g=2*Math.PI/365*(doy-1+(hourLST-12)/24);
+  const eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)-0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
+  const dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  const tst=hourLST*60+eq+4*lon-60*tz, ha=(tst/4-180)*r, la=lat*r;
+  const cz=Math.sin(la)*Math.sin(dec)+Math.cos(la)*Math.cos(dec)*Math.cos(ha);
+  const alt=Math.asin(Math.max(-1,Math.min(1,cz)))/r;
+  let az=Math.atan2(Math.sin(ha),Math.cos(ha)*Math.sin(la)-Math.tan(dec)*Math.cos(la))/r+180;
+  return {alt,az:(az+360)%360};
+}
+
+/* ---------- EPW parse + derived data ---------- */
+function parseEPW(text){
+  const lines=text.split(/\r?\n/);
+  const L=lines[0].split(",");
+  if(L[0]!=="LOCATION") throw new Error("This file doesn't start with a LOCATION line, so it isn't an EPW weather file.");
+  const loc={city:L[1].trim(),state:L[2].trim(),country:L[3].trim(),source:L[4].trim(),wmo:L[5].trim(),lat:+L[6],lon:+L[7],tz:+L[8],elev:+L[9]};
+  const H=[];
+  for(let i=8;i<lines.length;i++){
+    const c=lines[i].split(",");
+    if(c.length<22) continue;
+    H.push([+c[1],+c[2],+c[3],+c[6],+c[7],+c[8],+c[9]/1000,+c[13],+c[14],+c[15],+c[20],+c[21]]);
+  }
+  if(H.length<8700) throw new Error("This weather file has "+H.length+" hours; a full year has 8760.");
+  return {loc,rows:H.slice(0,8760)};
+}
+// row: month, day, hour, T, Td, RH, P(kPa), GHI, DNI, DHI, windDir, windSpeed
+function derive(loc,rows){
+  const hrs=[], cum=[0];for(let m=0;m<12;m++)cum.push(cum[m]+MDAYS[m]);
+  rows.forEach((r,i)=>{
+    const [mo,dy,hr,T,Td,rh,P0,ghi,dni,dhi,wd,ws]=r;
+    const P=(P0>50&&P0<120)?P0:101.325*Math.pow(1-2.25577e-5*loc.elev,5.25588);
+    const W=Wfrom(pws(Math.min(Td,T)),P);
+    const doy=cum[mo-1]+dy;
+    hrs.push({mo,dy,hr,T,Td,rh,P,ghi,dni,dhi,wd,ws,W,day:doy-1,doy});
+  });
+  const P=hrs.reduce((a,h)=>a+h.P,0)/hrs.length;
+  hrs.forEach(h=>h.Twb=wetBulb(h.T,h.W,h.P));
+  // daily stats
+  const days=[];for(let d=0;d<365;d++)days.push({min:99,max:-99,sum:0,n:0});
+  hrs.forEach(h=>{const d=days[h.day];if(!d)return;d.min=Math.min(d.min,h.T);d.max=Math.max(d.max,h.T);d.sum+=h.T;d.n++;});
+  const swing=days.map(d=>d.max-d.min), dmean=days.map(d=>d.sum/d.n);
+  // monthly
+  const mon=MONTHS.map(()=>({T:0,n:0,lo:0,hi:0,nd:0,rh:0,td:0}));
+  hrs.forEach(h=>{const m=mon[h.mo-1];m.T+=h.T;m.rh+=h.rh;m.td+=h.Td;m.n++;});
+  days.forEach((d,i)=>{const mo=cum.findIndex(c=>c>i)-1;const m=mon[mo];m.lo+=d.min;m.hi+=d.max;m.nd++;});
+  mon.forEach(m=>{m.T/=m.n;m.rh/=m.n;m.td/=m.n;m.lo/=m.nd;m.hi/=m.nd;});
+  // facade solar (isotropic sky), kWh/m2 per month
+  const fac={N:0,E:90,S:180,W:270}, sol=MONTHS.map(()=>({N:0,E:0,S:0,W:0,Roof:0}));
+  hrs.forEach(h=>{
+    const sp=sunPos(h.doy,h.hr-0.5,loc.lat,loc.lon,loc.tz), r=Math.PI/180, m=sol[h.mo-1];
+    m.Roof+=h.ghi/1000;
+    for(const k in fac){
+      const cosi=sp.alt>0?Math.cos(sp.alt*r)*Math.cos((sp.az-fac[k])*r):0;
+      m[k]+=(h.dni*Math.max(0,cosi)+h.dhi*0.5+h.ghi*0.2*0.5)/1000;
+    }
+  });
+  const data={hrs,days,swing,dmean,mon,sol,P};
+  data.zones={};ZONES.forEach(z=>{data.zones[z.id]=hrs.filter(h=>inZone(z,h,data)).length/hrs.length*100;});
+  data.zone=climateZone(dmean);
+  return data;
+}
+function degreeDays(dmean,base){let h=0,c=0;const mh=Array(12).fill(0),mc=Array(12).fill(0);let d=0;
+  for(let m=0;m<12;m++)for(let k=0;k<MDAYS[m];k++,d++){const t=dmean[d];if(t<base){h+=base-t;mh[m]+=base-t}else{c+=t-base;mc[m]+=t-base}}
+  return {h,c,mh,mc};}
+function climateZone(dmean){
+  const hdd18=degreeDays(dmean,18).h, cdd10=degreeDays(dmean,10).c;
+  let z;
+  if(cdd10>5000)z=1;else if(cdd10>3500)z=2;else if(hdd18<=2000)z=3;else if(hdd18<=3000)z=4;else if(hdd18<=4000)z=5;else if(hdd18<=5000)z=6;else if(hdd18<=7000)z=7;else z=8;
+  return {num:z,hdd18,cdd10};
+}
+
+/* ---------- svg helpers ---------- */
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function txt(parent,x,y,s,attrs={}){const t=el("text",Object.assign({x,y},attrs),parent);t.textContent=s;return t;}
+function clear(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+function scale(d0,d1,r0,r1){return v=>r0+(v-d0)/(d1-d0)*(r1-r0);}
+function niceTicks(a,b,n){const step=Math.pow(10,Math.floor(Math.log10((b-a)/n)));const m=[1,2,5,10].find(k=>(b-a)/(step*k)<=n)*step;const out=[];for(let v=Math.ceil(a/m)*m;v<=b+1e-9;v+=m)out.push(+v.toFixed(6));return out;}
+function axes(svg,x,y,xt,yt,box,{xl,yl,xf=String,yf=String}={}){
+  const g=el("g",{},svg);
+  yt.forEach(v=>{el("line",{x1:box.l,x2:box.r,y1:y(v),y2:y(v),stroke:css("--line"),"stroke-width":1},g);txt(g,box.l-6,y(v)+4,yf(v),{"text-anchor":"end"});});
+  xt.forEach((v,i)=>{txt(g,typeof v==="number"?x(v):x(i),box.b+16,xf(v),{"text-anchor":"middle"});});
+  if(xl)txt(g,(box.l+box.r)/2,box.b+34,xl,{"text-anchor":"middle",class:"lbl"});
+  if(yl){const t=txt(g,14,(box.t+box.b)/2,yl,{"text-anchor":"middle",class:"lbl",transform:`rotate(-90 14 ${(box.t+box.b)/2})`});}
+}
+
+/* ---------- chart cards ---------- */
+const CARDS=[
+ {id:"temp",title:"Temperature by month, with the daily range",
+  clue:d=>`Latitude ${fmt(S.loc.lat,1)}°, elevation ${fmt(S.loc.elev*3.281,0)} ft (${fmt(S.loc.elev,0)} m). High, dry sites swing more between day and night. Tap each month to guess its average temperature.`,
+  hint:"Is the day-night swing big enough to store daytime heat and flush it at night? What would walls and floors need to be?",
+  src:"Green Studio Handbook p 183; Studio Companion p 234", draw:drawTemp, guess:"tap"},
+ {id:"hum",title:"Humidity and dew point",
+  clue:()=>"Think about where this city sits: desert, plains, mountains or coast. Is the air here mostly dry or humid?",
+  hint:"Would adding moisture to this air help comfort or hurt it?",
+  src:"Studio Companion p 236; Green Studio Handbook p 177", draw:drawHum, guess:"choice", options:["Dry","In between","Humid"],
+  answer:d=>{const rh=d.mon.reduce((a,m)=>a+m.rh,0)/12;return rh<45?"Dry":rh<65?"In between":"Humid";}},
+ {id:"psy",title:"Psychrometric chart: every hour of the year",
+  clue:()=>"The green box is the comfort zone. Guess what share of the year's 8,760 hours already falls inside it.",
+  hint:"Where do most of the hours sit outside the box: too cold, too hot, too dry or too humid? Which kind of strategy does that call for?",
+  src:"Lechner ch 5; Studio Companion S4.3 p 221", draw:drawPsyCard, guess:"slider", unitLbl:"% of hours",
+  answer:d=>d.zones.comfort},
+ {id:"wind",title:"Wind rose by season",
+  clue:()=>"Winter wind brings heat loss; summer breeze can cool. Guess where winter wind mostly comes from.",
+  hint:"Does the breeze come when you need cooling? What do large openings and open plans cost in privacy, noise or fire separation?",
+  src:"Studio Companion p 230; Green Studio Handbook p 165", draw:drawWind, guess:"choice", options:["N","NE","E","SE","S","SW","W","NW"],
+  answer:d=>prevailing(d,[12,1,2])},
+ {id:"solar",title:"Sun on each facade, by month",
+  clue:()=>"In winter the sun stays low in the southern sky. Guess which surface gets the most sun from December to February.",
+  hint:"Which facade would you open to winter sun, how would you block summer sun, and what happens in long sunless stretches?",
+  src:"Studio Companion p 227; Green Studio Handbook pp 115, 131", draw:drawSolar, guess:"choice", options:["N","E","S","W","Roof"],
+  answer:d=>{const t={N:0,E:0,S:0,W:0,Roof:0};[11,0,1].forEach(m=>{for(const k in t)t[k]+=d.sol[m][k]});return Object.keys(t).sort((a,b)=>t[b]-t[a])[0];}},
+ {id:"dd",title:"Heating and cooling degree days",
+  clue:()=>"Degree days add up how far each day's average is below (heating) or above (cooling) a balance point. Is this climate heating or cooling dominated?",
+  hint:"Should heating or cooling strategies lead, and what backup would still be needed?",
+  src:"Studio Companion p 221; Green Studio Handbook p 383", draw:drawDD, guess:"choice", options:["Heating","Cooling","About even"],
+  answer:d=>{const dd=degreeDays(d.dmean,18.3);return dd.h>dd.c*1.5?"Heating":dd.c>dd.h*1.5?"Cooling":"About even";}},
+ {id:"sun",title:"Sun path",
+  clue:d=>`Noon sun altitude is 90° minus latitude, plus or minus the sun's tilt (23.4°). This site is at ${fmt(S.loc.lat,1)}°N. Guess the noon altitude on the winter solstice.`,
+  hint:"At that low angle, how deep would a south overhang need to be to let winter sun in and keep summer sun out?",
+  src:"Lechner ch 6; Studio Companion p 227", draw:drawSun, guess:"number", unitLbl:"degrees",
+  answer:()=>90-S.loc.lat-23.44}
+];
+
+function buildCards(){
+  const host=$("#chartCards");host.innerHTML="";
+  CARDS.forEach(c=>{
+    const card=document.createElement("div");card.className="card";card.id="card-"+c.id;
+    card.innerHTML=`<h3>${c.title}</h3>
+      <div class="clue"><span class="label">Clue</span><div>${c.clue(S.data)}</div></div>
+      <div class="guessArea"></div>
+      <svg class="chart" viewBox="0 0 760 ${c.id==="sun"||c.id==="wind"?420:330}" role="img" aria-label="${c.title}"></svg>
+      <div class="row"><button class="btn reveal">Reveal the real data</button><span class="result"></span></div>
+      <div class="hint"><b>Hint question</b><span>${c.hint}</span><span class="src">${c.src}</span>
+      <textarea aria-label="Your answer" data-ans="${c.id}"></textarea></div>`;
+    host.appendChild(card);
+    const ga=card.querySelector(".guessArea");
+    if(c.guess==="choice"){
+      ga.innerHTML=`<div class="label">Your guess</div><div class="chips">${c.options.map(o=>`<button aria-pressed="${S.guesses[c.id]===o}" data-v="${o}">${o}</button>`).join("")}</div>`;
+      ga.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.guesses[c.id]=b.dataset.v;ga.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));persist();});
+    }else if(c.guess==="slider"){
+      const v=S.guesses[c.id]??20;
+      ga.innerHTML=`<label class="label" for="g-${c.id}">Your guess: <span>${v}</span> ${c.unitLbl}</label><input type="range" id="g-${c.id}" min="0" max="100" value="${v}" style="width:100%">`;
+      const r=ga.querySelector("input");r.oninput=()=>{S.guesses[c.id]=+r.value;ga.querySelector("span").textContent=r.value;persist();};
+      S.guesses[c.id]=v;
+    }else if(c.guess==="number"){
+      ga.innerHTML=`<label class="label" for="g-${c.id}">Your guess (${c.unitLbl})</label> <input type="number" id="g-${c.id}" min="0" max="90" step="1" value="${S.guesses[c.id]??""}" style="width:110px">`;
+      const r=ga.querySelector("input");r.oninput=()=>{S.guesses[c.id]=r.value===""?undefined:+r.value;persist();};
+    }else{
+      ga.innerHTML=`<div class="label">Your guess: tap the chart once per month</div>`;
+    }
+    const ta=card.querySelector("textarea");ta.value=S.answers[c.id]||"";ta.oninput=()=>{S.answers[c.id]=ta.value;persist();};
+    card.querySelector(".reveal").onclick=()=>{S.revealed[c.id]=true;persist();renderCard(c);};
+    renderCard(c);
+  });
+}
+function renderCard(c){
+  const card=$("#card-"+c.id), svg=card.querySelector("svg");clear(svg);
+  c.draw(svg,S.data,!!S.revealed[c.id]);
+  const res=card.querySelector(".result"), btn=card.querySelector(".reveal");
+  btn.hidden=!!S.revealed[c.id];
+  if(!S.revealed[c.id]){res.textContent="";return;}
+  if(c.id==="temp"){
+    const g=S.guesses.temp||{};const errs=Object.keys(g).map(m=>Math.abs(dC2(g[m]-S.data.mon[m].T)));
+    res.textContent=errs.length?`Your guesses were off by ${fmt(errs.reduce((a,b)=>a+b,0)/errs.length,1)}${uT()} on average.`:"Revealed.";
+  }else if(c.answer){
+    const a=c.answer(S.data), g=S.guesses[c.id];
+    if(typeof a==="number"){res.textContent=`Actual: ${fmt(a,c.id==="psy"?0:1)} ${c.unitLbl}`+(g!=null?` · your guess: ${g}`:"");}
+    else res.textContent=`Actual: ${a}`+(g?` · your guess: ${g}`+(g===a?" ✓":""):"");
+  }
+}
+
+/* ---------- individual charts ---------- */
+function drawTemp(svg,d,rev){
+  const box={l:56,r:740,t:16,b:280};
+  const all=d.mon.flatMap(m=>[m.lo,m.hi]);let lo=Math.min(...all,-5),hi=Math.max(...all,30);
+  lo=Math.floor(tC2(lo)/10)*10;hi=Math.ceil(tC2(hi)/10)*10;
+  const y=scale(lo,hi,box.b,box.t), bw=(box.r-box.l)/12, x=i=>box.l+bw*(i+.5);
+  axes(svg,x,y,MONTHS,niceTicks(lo,hi,6),box,{yl:"Temperature "+uT()});
+  // comfort band
+  el("rect",{x:box.l,width:box.r-box.l,y:y(tC2(26)),height:y(tC2(20))-y(tC2(26)),fill:css("--s-comfort"),opacity:.14},svg);
+  txt(svg,box.r-4,y(tC2(26))-4,"comfort",{"text-anchor":"end",fill:css("--s-comfort")});
+  if(rev){d.mon.forEach((m,i)=>{
+    el("rect",{x:x(i)-bw*.18,width:bw*.36,y:y(tC2(m.hi)),height:Math.max(2,y(tC2(m.lo))-y(tC2(m.hi))),rx:4,fill:css("--sun"),opacity:.35},svg);
+    el("circle",{cx:x(i),cy:y(tC2(m.T)),r:5,fill:css("--sun")},svg);
+    if(m.hi-m.lo>=10)txt(svg,x(i),y(tC2(m.hi))-6,fmt(dC2(m.hi-m.lo),0)+"°",{"text-anchor":"middle",fill:css("--sun")});
+  });txt(svg,box.l+4,box.t+10,"bar = average daily low to high · dot = monthly mean · label = swing (bars ≥ 10 °C / 18 °F)",{fill:css("--muted")});}
+  const g=S.guesses.temp||{};
+  Object.keys(g).forEach(i=>{el("line",{x1:x(+i)-bw*.3,x2:x(+i)+bw*.3,y1:y(tC2(g[i])),y2:y(tC2(g[i])),stroke:css("--guess"),"stroke-width":3},svg);});
+  if(!rev){const hit=el("rect",{x:box.l,y:box.t,width:box.r-box.l,height:box.b-box.t,fill:"transparent",style:"cursor:crosshair"},svg);
+    hit.addEventListener("click",e=>{const p=svgPoint(svg,e);const i=Math.max(0,Math.min(11,Math.floor((p.x-box.l)/bw)));
+      const v=lo+(box.b-p.y)/(box.b-box.t)*(hi-lo);const vc=S.unit==="F"?(v-32)*5/9:v;
+      S.guesses.temp=S.guesses.temp||{};S.guesses.temp[i]=+vc.toFixed(1);persist();clear(svg);drawTemp(svg,d,false);});}
+}
+function svgPoint(svg,e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+
+function drawHum(svg,d,rev){
+  const box={l:56,r:700,t:16,b:280}, bw=(box.r-box.l)/12, x=i=>box.l+bw*(i+.5);
+  const y=scale(0,100,box.b,box.t);
+  axes(svg,x,y,MONTHS,[0,20,40,60,80,100],box,{yl:"Relative humidity %"});
+  el("rect",{x:box.l,width:box.r-box.l,y:y(60),height:y(30)-y(60),fill:css("--s-comfort"),opacity:.14},svg);
+  txt(svg,box.l+4,y(60)-4,"30–60% RH",{fill:css("--s-comfort")});
+  if(!rev){txt(svg,(box.l+box.r)/2,(box.t+box.b)/2,"Make your guess, then reveal",{"text-anchor":"middle",class:"lbl"});return;}
+  const pts=d.mon.map((m,i)=>`${x(i)},${y(m.rh)}`).join(" ");
+  el("polyline",{points:pts,fill:"none",stroke:css("--s-evap"),"stroke-width":3},svg);
+  d.mon.forEach((m,i)=>el("circle",{cx:x(i),cy:y(m.rh),r:4,fill:css("--s-evap")},svg));
+  // dew point on right axis
+  const tds=d.mon.map(m=>tC2(m.td)), dlo=Math.floor(Math.min(...tds)/10)*10, dhi=Math.ceil(Math.max(...tds)/10)*10+10;
+  const y2=scale(dlo,dhi,box.b,box.t);
+  niceTicks(dlo,dhi,5).forEach(v=>txt(svg,box.r+8,y2(v)+4,v+"°",{}));
+  el("polyline",{points:tds.map((t,i)=>`${x(i)},${y2(t)}`).join(" "),fill:"none",stroke:css("--accent"),"stroke-width":2,"stroke-dasharray":"6 4"},svg);
+  txt(svg,box.l+4,box.t+10,"solid = mean RH (left) · dashed = mean dew point "+uT()+" (right)",{});
+}
+
+function psyFrame(svg,d,box){
+  const P=d.P, tlo=-20,thi=45, wmax=Math.min(30,Math.max(16,Math.ceil(Wsat(35,P)*.8)));
+  const x=scale(tlo,thi,box.l,box.r), y=scale(0,wmax,box.b,box.t);
+  const xt=niceTicks(S.unit==="F"?tC2(tlo):tlo,S.unit==="F"?tC2(thi):thi,8);
+  const xc=v=>S.unit==="F"?(v-32)*5/9:v;
+  el("rect",{x:box.l,y:box.t,width:box.r-box.l,height:box.b-box.t,fill:"none",stroke:css("--line")},svg);
+  xt.forEach(v=>{el("line",{x1:x(xc(v)),x2:x(xc(v)),y1:box.t,y2:box.b,stroke:css("--line")},svg);txt(svg,x(xc(v)),box.b+16,v,{"text-anchor":"middle"});});
+  niceTicks(0,wmax,6).forEach(v=>txt(svg,box.r+6,y(v)+4,v,{}));
+  txt(svg,(box.l+box.r)/2,box.b+34,"Dry-bulb temperature "+uT(),{"text-anchor":"middle",class:"lbl"});
+  txt(svg,box.r+6,box.t-4,"g/kg",{});
+  [20,40,60,80,100].forEach(rh=>{let p="";for(let t=tlo;t<=thi;t+=0.5){const w=Wrh(t,rh,P);if(w>wmax)break;p+=`${p?"L":"M"}${x(t).toFixed(1)},${y(w).toFixed(1)}`;}
+    el("path",{d:p,fill:"none",stroke:css(rh===100?"--muted":"--line"),"stroke-width":rh===100?1.5:1},svg);});
+  txt(svg,box.l+6,box.t+12,`site pressure ${fmt(P,1)} kPa (elevation ${fmt(S.loc.elev,0)} m) · curves = 20–100% RH`,{});
+  return {x,y,wmax,tlo,thi,P};
+}
+function binHours(svg,d,f){
+  const counts={};let max=0;
+  d.hrs.forEach(h=>{const k=Math.floor(h.T)+","+Math.floor(h.W);counts[k]=(counts[k]||0)+1;max=Math.max(max,counts[k]);});
+  const g=el("g",{},svg);
+  for(const k in counts){const [t,w]=k.split(",").map(Number);if(t<f.tlo||t>=f.thi||w>=f.wmax)continue;
+    el("rect",{x:f.x(t),y:f.y(w+1),width:f.x(t+1)-f.x(t)+.3,height:f.y(w)-f.y(w+1)+.3,fill:css("--ink"),opacity:(0.12+0.8*Math.sqrt(counts[k]/max)).toFixed(2)},g);}
+}
+function zonePath(z,f){
+  if(z.shade)return null;
+  let top="",t0=Math.max(z.t0,f.tlo),t1=Math.min(z.t1,f.thi);const pts=[];
+  for(let t=t0;t<=t1+1e-9;t+=0.25)pts.push([t,Math.min(zoneUpper(z,t,f.P),f.wmax)]);
+  return "M"+f.x(t0)+","+f.y(0)+pts.map(p=>"L"+f.x(p[0]).toFixed(1)+","+f.y(p[1]).toFixed(1)).join("")+"L"+f.x(t1)+","+f.y(0)+"Z";
+}
+function drawPsyCard(svg,d,rev){
+  const box={l:20,r:700,t:20,b:280}, f=psyFrame(svg,d,box);
+  const comfort=ZONES[0];
+  el("path",{d:zonePath(comfort,f),fill:css("--s-comfort"),opacity:.18,stroke:css("--s-comfort"),"stroke-width":2},svg);
+  if(rev)binHours(svg,d,f);
+  else txt(svg,(box.l+box.r)/2,box.t+40,"Make your guess, then reveal the hours",{"text-anchor":"middle",class:"lbl"});
+}
+function prevailing(d,months){
+  const dirs=["N","NE","E","SE","S","SW","W","NW"], c=Array(8).fill(0);
+  d.hrs.forEach(h=>{if(months.includes(h.mo)&&h.ws>=0.5&&h.wd<=360)c[Math.round(h.wd/45)%8]++;});
+  return dirs[c.indexOf(Math.max(...c))];
+}
+function drawWind(svg,d,rev){
+  if(!rev){txt(svg,380,200,"Make your guess, then reveal the wind roses",{"text-anchor":"middle",class:"lbl"});return;}
+  const seasons=[["Winter (Dec–Feb)",[12,1,2],190],["Summer (Jun–Aug)",[6,7,8],570]];
+  seasons.forEach(([name,ms,cx])=>{
+    const c=Array(16).fill(0),cool=Array(16).fill(0);let n=0,calm=0;
+    d.hrs.forEach(h=>{if(!ms.includes(h.mo))return;n++;if(h.ws<0.5||h.wd>360){calm++;return;}const k=Math.round(h.wd/22.5)%16;c[k]++;if(h.T>=26&&h.T<=32)cool[k]++;});
+    const pct=c.map(v=>v/n*100), mx=Math.max(...pct,1), R=150, cy=215, rr=v=>Math.sqrt(v/mx)*R;
+    [.25,.5,1].forEach(f=>el("circle",{cx,cy,r:Math.sqrt(f)*R,fill:"none",stroke:css("--line")},svg));
+    ["N","E","S","W"].forEach((l,i)=>{const a=i*Math.PI/2;txt(svg,cx+Math.sin(a)*(R+14),cy-Math.cos(a)*(R+14)+4,l,{"text-anchor":"middle",class:"lbl"});});
+    pct.forEach((v,k)=>{const a0=(k*22.5-9)*Math.PI/180,a1=(k*22.5+9)*Math.PI/180,r=rr(v);
+      el("path",{d:`M${cx},${cy}L${cx+Math.sin(a0)*r},${cy-Math.cos(a0)*r}A${r},${r} 0 0 1 ${cx+Math.sin(a1)*r},${cy-Math.cos(a1)*r}Z`,fill:css("--accent"),opacity:.75},svg);
+      const rc=rr(cool[k]/n*100);if(rc>0)el("path",{d:`M${cx},${cy}L${cx+Math.sin(a0)*rc},${cy-Math.cos(a0)*rc}A${rc},${rc} 0 0 1 ${cx+Math.sin(a1)*rc},${cy-Math.cos(a1)*rc}Z`,fill:css("--s-vent")},svg);});
+    txt(svg,cx,22,name,{"text-anchor":"middle",class:"lbl"});
+    txt(svg,cx,40,`outer ring ${fmt(mx,0)}% of hours · calm ${fmt(calm/n*100,0)}%`,{"text-anchor":"middle"});
+  });
+  txt(svg,380,412,"blue = all wind · teal = hours when a breeze would help cooling (26–32 °C / 79–90 °F)",{"text-anchor":"middle"});
+}
+function drawSolar(svg,d,rev){
+  const box={l:56,r:740,t:16,b:280}, keys=["S","E","W","N","Roof"], cols={S:"--sun",E:"--s-solar",W:"--s-gain",N:"--accent",Roof:"--muted"};
+  const max=Math.max(...d.sol.flatMap(m=>keys.map(k=>m[k])));
+  const y=scale(0,Math.ceil(max/50)*50,box.b,box.t), bw=(box.r-box.l)/12, x=i=>box.l+bw*(i+.5);
+  axes(svg,x,y,MONTHS,niceTicks(0,Math.ceil(max/50)*50,5),box,{yl:"kWh/m² per month"});
+  [11,0,1].forEach(i=>el("rect",{x:x(i)-bw/2,y:box.t,width:bw,height:box.b-box.t,fill:css("--accent-soft"),opacity:.6},svg));
+  [5,6,7].forEach(i=>el("rect",{x:x(i)-bw/2,y:box.t,width:bw,height:box.b-box.t,fill:css("--sun-soft"),opacity:.6},svg));
+  if(!rev){txt(svg,(box.l+box.r)/2,(box.t+box.b)/2,"Make your guess, then reveal",{"text-anchor":"middle",class:"lbl"});return;}
+  keys.forEach((k,j)=>{el("polyline",{points:d.sol.map((m,i)=>`${x(i)},${y(m[k])}`).join(" "),fill:"none",stroke:css(cols[k]),"stroke-width":k==="S"?3.5:2,"stroke-dasharray":k==="Roof"?"5 4":""},svg);
+    txt(svg,box.l+8+j*92,box.t+12,"■ "+(k==="Roof"?"Roof (flat)":k+" wall"),{fill:css(cols[k])});});
+  txt(svg,box.r-4,box.b-6,"blue band = winter · orange band = summer",{"text-anchor":"end"});
+}
+function drawDD(svg,d,rev){
+  const card=svg.closest(".card");let sl=card.querySelector(".bal");
+  if(rev&&!sl){sl=document.createElement("div");sl.className="bal row";sl.innerHTML=`<label for="balpt">Balance point</label><input type="range" id="balpt" min="10" max="24" step="0.5" value="18.3"><span></span>`;svg.after(sl);
+    sl.querySelector("input").oninput=()=>{clear(svg);drawDD(svg,d,true);};}
+  const base=sl?+sl.querySelector("input").value:18.3;
+  if(sl)sl.querySelector("span").textContent=`${fmt(tC2(base),1)}${uT()} (a well-insulated building with internal gains has a lower one)`;
+  const box={l:56,r:740,t:24,b:280}, dd=degreeDays(d.dmean,base), k=S.unit==="F"?1.8:1;
+  const mx=Math.max(...dd.mh,...dd.mc)*k, top=Math.ceil(mx/100)*100||100, y=scale(0,top,box.b,box.t), bw=(box.r-box.l)/12, x=i=>box.l+bw*(i+.5);
+  axes(svg,x,y,MONTHS,niceTicks(0,top,5),box,{yl:"Degree days ("+uT()+"·day)"});
+  if(!rev){txt(svg,(box.l+box.r)/2,(box.t+box.b)/2,"Make your guess, then reveal",{"text-anchor":"middle",class:"lbl"});return;}
+  dd.mh.forEach((v,i)=>{el("rect",{x:x(i)-bw*.36,width:bw*.34,y:y(v*k),height:box.b-y(v*k),fill:css("--accent")},svg);el("rect",{x:x(i)+bw*.02,width:bw*.34,y:y(dd.mc[i]*k),height:box.b-y(dd.mc[i]*k),fill:css("--sun")},svg);});
+  txt(svg,box.l+4,box.t-8,`■ heating ${fmt(dd.h*k,0)}  `,{fill:css("--accent")});
+  txt(svg,box.l+150,box.t-8,`■ cooling ${fmt(dd.c*k,0)}  (yearly totals)`,{fill:css("--sun")});
+}
+function sunGeom(lat,lon,tz){
+  const days=[[172,"Jun 21"],[141,"May 21 / Jul 21"],[111,"Apr 20 / Aug 22"],[80,"Mar 21 / Sep 21"],[52,"Feb 21 / Oct 21"],[21,"Jan 21 / Nov 21"],[355,"Dec 21"]];
+  const paths=days.map(([doy,name])=>{const pts=[];for(let h=3;h<=21;h+=0.1){const p=sunPos(doy,h,lat,lon,tz);if(p.alt>=0)pts.push(p);}return {doy,name,pts};});
+  const hours=[];for(let h=5;h<=19;h++){const pts=days.map(([doy])=>sunPos(doy,h,lat,lon,tz)).filter(p=>p.alt>=0);if(pts.length>1)hours.push({h,pts});}
+  return {paths,hours};
+}
+function drawSun(svg,d,rev){
+  const cx=380,cy=210,R=180, P=(p)=>{const r=(90-p.alt)/90*R,a=p.az*Math.PI/180;return [cx+Math.sin(a)*r,cy-Math.cos(a)*r];};
+  [0,15,30,45,60,75].forEach(a=>{el("circle",{cx,cy,r:(90-a)/90*R,fill:"none",stroke:css("--line")},svg);if(a)txt(svg,cx+3,cy-(90-a)/90*R+12,a+"°",{});});
+  for(let a=0;a<360;a+=30){const r=Math.PI/180*a;el("line",{x1:cx,y1:cy,x2:cx+Math.sin(r)*R,y2:cy-Math.cos(r)*R,stroke:css("--line")},svg);}
+  ["N","E","S","W"].forEach((l,i)=>{const a=i*Math.PI/2;txt(svg,cx+Math.sin(a)*(R+14),cy-Math.cos(a)*(R+14)+4,l,{"text-anchor":"middle",class:"lbl"});});
+  if(!rev){txt(svg,cx,cy+R+30,"Make your guess, then reveal the sun paths",{"text-anchor":"middle",class:"lbl"});return;}
+  const g=sunGeom(S.loc.lat,S.loc.lon,S.loc.tz);
+  g.paths.forEach((p,i)=>{const col=i===0?css("--sun"):i===6?css("--accent"):css("--muted");
+    el("path",{d:p.pts.map((q,j)=>(j?"L":"M")+P(q).map(v=>v.toFixed(1)).join(",")).join(""),fill:"none",stroke:col,"stroke-width":i===0||i===6?2.5:1.2},svg);});
+  g.hours.forEach(h=>{el("path",{d:h.pts.map((q,j)=>(j?"L":"M")+P(q).map(v=>v.toFixed(1)).join(",")).join(""),fill:"none",stroke:css("--muted"),"stroke-width":.8,"stroke-dasharray":"3 3"},svg);
+    const top=h.pts[0];const [px,py]=P(top);txt(svg,px,py-6,h.h<=12?h.h+"am":(h.h-12)+"pm",{"text-anchor":"middle"});});
+  txt(svg,20,20,"orange = Jun 21 · blue = Dec 21 · grey = 21st of other months · local standard time",{});
+}
+
+/* ---------- strategies ---------- */
+function buildStrategies(){
+  const host=$("#stratPicks");
+  host.innerHTML=STRATS.map(z=>`<button data-id="${z.id}" aria-pressed="${S.picks.includes(z.id)}">${z.name}</button>`).join("");
+  host.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    if(S.stratRevealed)return;
+    const id=b.dataset.id;if(S.picks.includes(id))S.picks=S.picks.filter(x=>x!==id);else if(S.picks.length<3)S.picks.push(id);
+    host.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",S.picks.includes(x.dataset.id)));
+    $("#pickCount").textContent=`${S.picks.length} of 3 picked`;$("#stratReveal").disabled=S.picks.length!==3;persist();});
+  $("#pickCount").textContent=`${S.picks.length} of 3 picked`;
+  $("#stratReveal").disabled=S.picks.length!==3||S.stratRevealed;
+  $("#stratReveal").onclick=()=>{S.stratRevealed=true;persist();renderStrat();};
+  $("#ans-strat").value=S.answers.strat||"";$("#ans-strat").oninput=e=>{S.answers.strat=e.target.value;persist();};
+  renderStrat();
+}
+function ranking(){return STRATS.map(z=>({z,p:S.data.zones[z.id]})).sort((a,b)=>b.p-a.p);}
+function renderStrat(){
+  $("#stratResult").hidden=!S.stratRevealed;
+  if(!S.stratRevealed)return;
+  $("#stratReveal").disabled=true;
+  if(!S.zonesOn)S.zonesOn=["comfort"].concat(ranking().slice(0,3).map(r=>r.z.id)).filter(id=>id!=="shade");
+  const tg=$("#zoneToggles");
+  tg.innerHTML=ZONES.filter(z=>!z.shade).map(z=>`<button data-id="${z.id}" aria-pressed="${S.zonesOn.includes(z.id)}"><span class="sw" style="background:var(${z.col})"></span>${z.name}</button>`).join("");
+  tg.querySelectorAll("button").forEach(b=>b.onclick=()=>{const id=b.dataset.id;S.zonesOn=S.zonesOn.includes(id)?S.zonesOn.filter(x=>x!==id):S.zonesOn.concat(id);renderStrat();});
+  const svg=$("#psyStrat");clear(svg);drawPsyZones(svg,S.zonesOn);
+  const r=ranking();
+  $("#rankTable").innerHTML=`<tr><th>Rank</th><th>Strategy</th><th>% of hours it helps</th><th></th></tr>`+
+   `<tr><td>–</td><td><span class="sw" style="background:var(--s-comfort)"></span>Already comfortable</td><td>${fmt(S.data.zones.comfort,0)}%</td><td><div class="bar"><i style="width:${S.data.zones.comfort}%;background:var(--s-comfort)"></i></div></td></tr>`+
+   r.map((x,i)=>`<tr><td>${i+1}</td><td><span class="sw" style="background:var(${x.z.col})"></span>${x.z.name} ${S.picks.includes(x.z.id)?'<span class="pick">YOUR PICK</span>':""}</td><td>${fmt(x.p,0)}%</td><td><div class="bar"><i style="width:${Math.min(100,x.p)}%;background:var(${x.z.col})"></i></div></td></tr>`).join("");
+}
+function drawPsyZones(svg,ids,opts={}){
+  const box={l:20,r:700,t:20,b:360}, f=psyFrame(svg,S.data,box);
+  binHours(svg,S.data,f);
+  ZONES.filter(z=>ids.includes(z.id)).forEach(z=>{const p=zonePath(z,f);if(p)el("path",{d:p,fill:css(z.col),opacity:.16,stroke:css(z.col),"stroke-width":2},svg);});
+  ZONES.filter(z=>ids.includes(z.id)&&!z.shade).forEach(z=>{const t=(Math.max(z.t0,f.tlo)+Math.min(z.t1,f.thi))/2;txt(svg,f.x(t),f.y(Math.min(zoneUpper(z,t,f.P),f.wmax))-5,z.name.replace("Thermal mass + ",""),{"text-anchor":"middle",fill:css(z.col),"font-weight":"600"});});
+}
+
+/* ---------- export ---------- */
+function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h.toString(36).toUpperCase().padStart(7,"0").slice(-7);}
+function runCode(){const d=S.data;const sig=[$("#studentName").value.trim().toLowerCase(),S.loc.wmo,S.loc.city,fmt(d.hrs.reduce((a,h)=>a+h.T,0),1),JSON.stringify(S.guesses),JSON.stringify(S.answers),S.picks.join("")].join("|");return hashStr(sig);}
+function checklist(){
+  const hintsDone=CARDS.filter(c=>(S.answers[c.id]||"").trim().length>3).length;
+  const guessDone=CARDS.filter(c=>c.id==="temp"?Object.keys(S.guesses.temp||{}).length>=6:S.guesses[c.id]!=null).length;
+  return [
+   ["Weather file loaded",!!S.data,`${S.loc.city}, ${S.loc.state} (WMO ${S.loc.wmo})`],
+   ["Name entered",!!$("#studentName").value.trim(),$("#studentName").value.trim()||"missing"],
+   ["Charts guessed and revealed",guessDone===CARDS.length&&CARDS.every(c=>S.revealed[c.id]),`${guessDone} of ${CARDS.length} guessed`],
+   ["Hint questions answered",hintsDone===CARDS.length,`${hintsDone} of ${CARDS.length}`],
+   ["Top 3 strategies picked before reveal",S.picks.length===3&&S.stratRevealed,S.picks.map(id=>ZONES.find(z=>z.id===id).name).join(", ")||"none"],
+   ["Strategy hint answered",(S.answers.strat||"").trim().length>3,""],
+   ["Case study","pending","Version 2"],["Future run","pending","Version 2"]];
+}
+function buildKit(){
+  const k=$("#kit");if(!S.data){k.innerHTML="";return;}
+  const d=S.data, r=ranking();
+  k.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><div class="label">Climate kit</div><h2>${S.loc.city}, ${S.loc.state}</h2>
+    <p class="place">${fmt(S.loc.lat,2)}°, ${fmt(S.loc.lon,2)}° · ${fmt(S.loc.elev*3.281,0)} ft · climate zone ${d.zone.num} · ${S.fileName}</p></div>
+    <div><div class="label">Run code</div><div class="code">${runCode()}</div><div class="note">${$("#studentName").value.trim()||"(no name)"} · ${new Date().toLocaleDateString()}</div></div></div>
+    <ul class="check" style="list-style:none;padding:0;margin:0">${checklist().map(([a,ok,n])=>`<li><b class="${ok===true?"ok":"no"}">${ok===true?"✓":ok==="pending"?"·":"✗"}</b> ${a} <span class="note">${n}</span></li>`).join("")}</ul></div>
+   <div class="grid2"><div class="card"><h3>Strategies, % of hours</h3><table>${r.map((x,i)=>`<tr><td>${i+1}</td><td><span class="sw" style="background:var(${x.z.col})"></span>${x.z.name}${S.picks.includes(x.z.id)?' <span class="pick">PICK</span>':""}</td><td>${fmt(x.p,0)}%</td></tr>`).join("")}<tr><td></td><td>Already comfortable</td><td>${fmt(d.zones.comfort,0)}%</td></tr></table></div>
+   <div class="card"><h3>Key reads</h3><table>${keyReads().map(([a,b])=>`<tr><td>${a}</td><td><b>${b}</b></td></tr>`).join("")}</table></div></div>
+   <div class="card"><h3>Psychrometric chart with your top strategies</h3><svg class="chart" id="kitPsy" viewBox="0 0 760 430"></svg></div>
+   <div class="grid2"><div class="card"><h3>Temperature</h3><svg class="chart" id="kitTemp" viewBox="0 0 760 330"></svg></div><div class="card"><h3>Sun path</h3><svg class="chart" id="kitSun" viewBox="0 0 760 420"></svg></div></div>
+   <div class="card"><h3>Your hint answers</h3><table>${CARDS.map(c=>`<tr><td style="width:38%"><b>${c.title}</b><br><span class="note">${c.hint} (${c.src})</span></td><td>${esc(S.answers[c.id]||"–")}</td></tr>`).join("")}<tr><td><b>Strategies</b></td><td>${esc(S.answers.strat||"–")}</td></tr></table></div>`;
+  drawPsyZones($("#kitPsy"),["comfort"].concat(S.picks.length?S.picks:r.slice(0,3).map(x=>x.z.id)));
+  drawTemp($("#kitTemp"),d,true);drawSun($("#kitSun"),d,true);
+}
+function keyReads(){
+  const d=S.data, cold=d.mon.reduce((a,m,i)=>m.T<d.mon[a].T?i:a,0);
+  return [["Prevailing winter wind",prevailing(d,[12,1,2])],["Prevailing summer wind",prevailing(d,[6,7,8])],
+   ["Coldest month, mean low",`${MONTHS[cold]}, ${fmt(tC2(d.mon[cold].lo),0)}${uT()}`],["Hours in comfort zone",fmt(d.zones.comfort,0)+"%"],
+   ["Winter solstice noon sun altitude",fmt(90-S.loc.lat-23.44,1)+"°"],["Heating degree days (18 °C base)",fmt(d.zone.hdd18*(S.unit==="F"?1.8:1),0)+" "+uT()+"·day"]];
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function download(name,text,type){
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+    $("#exportMsg").textContent=`Saved ${name}. If nothing downloaded, this preview blocks downloads; the hosted version allows them.`;}
+  catch(e){$("#exportMsg").textContent="Downloads are blocked in this preview. They work on the hosted page.";}
+}
+const slug=()=>(S.loc.city||"site").replace(/[^A-Za-z0-9]+/g,"-").toLowerCase();
+function sunSVG(){const svg=document.createElementNS(NS,"svg");svg.setAttribute("xmlns",NS);svg.setAttribute("viewBox","0 0 760 420");drawSun(svg,S.data,true);
+  return new XMLSerializer().serializeToString(svg).replace(/var\([^)]+\)/g,"#555");}
+function sunDXF(){
+  const g=sunGeom(S.loc.lat,S.loc.lon,S.loc.tz), out=["0","SECTION","2","ENTITIES"];
+  const xy=p=>{const r=90-p.alt,a=p.az*Math.PI/180;return [Math.sin(a)*r,Math.cos(a)*r];};
+  const poly=(pts,layer,closed)=>{out.push("0","POLYLINE","8",layer,"66","1","70",closed?"1":"0");pts.forEach(([x,y])=>out.push("0","VERTEX","8",layer,"10",x.toFixed(4),"20",y.toFixed(4),"30","0"));out.push("0","SEQEND","8",layer);};
+  const text=(x,y,s,layer,h=3)=>out.push("0","TEXT","8",layer,"10",x.toFixed(3),"20",y.toFixed(3),"30","0","40",String(h),"1",s);
+  for(let a=0;a<=75;a+=15){const pts=[];for(let k=0;k<=72;k++){const t=k*5*Math.PI/180;pts.push([Math.sin(t)*(90-a),Math.cos(t)*(90-a)]);}poly(pts,"ALT_RINGS",true);if(a)text(1,90-a+1,a+"deg","ALT_RINGS",2.5);}
+  for(let a=0;a<360;a+=30){const t=a*Math.PI/180;poly([[0,0],[Math.sin(t)*90,Math.cos(t)*90]],"AZIMUTH",false);}
+  [["N",0,95],["E",95,0],["S",0,-98],["W",-98,0]].forEach(([s,x,y])=>text(x-1.5,y-1.5,s,"AZIMUTH",4));
+  g.paths.forEach(p=>poly(p.pts.map(xy),"SUN_PATHS",false));
+  g.hours.forEach(h=>{poly(h.pts.map(xy),"HOUR_LINES",false);const [x,y]=xy(h.pts[0]);text(x,y+2,h.h+"h","HOUR_LINES",2.5);});
+  text(-90,-110,`Sun path ${S.loc.city} lat ${S.loc.lat} lon ${S.loc.lon}. 1 unit = 1 deg altitude, north up. Local standard time.`,"NOTES",3);
+  out.push("0","ENDSEC","0","EOF");return out.join("\n");
+}
+function sessionJSON(){
+  return JSON.stringify({app:"climate-reader",version:1,name:$("#studentName").value.trim(),fileName:S.fileName,loc:S.loc,
+    rows:S.data.hrs.map(h=>[h.mo,h.dy,h.hr,+h.T.toFixed(1),+h.Td.toFixed(1),Math.round(h.rh),+h.P.toFixed(2),Math.round(h.ghi),Math.round(h.dni),Math.round(h.dhi),Math.round(h.wd),+h.ws.toFixed(1)]),
+    guesses:S.guesses,answers:S.answers,picks:S.picks,revealed:S.revealed,stratRevealed:S.stratRevealed});
+}
+
+/* ---------- load ---------- */
+function loadRows(loc,rows,fileName,saved){
+  S.loc=loc;S.fileName=fileName;S.data=derive(loc,rows);
+  Object.assign(S,{guesses:{},answers:{},picks:[],revealed:{},stratRevealed:false,zonesOn:null},saved||{});
+  $("#placeLine").textContent=`${loc.city}, ${loc.state} · ${fmt(loc.lat,2)}°N · zone ${S.data.zone.num}`;
+  $("#loadMsg").textContent=`Loaded ${fileName}.`;
+  renderSummary();buildCards();buildStrategies();buildKit();
+}
+function renderSummary(){
+  const d=S.data;$("#summaryCard").hidden=false;
+  $("#summary").innerHTML=[["Place",`${S.loc.city}, ${S.loc.state}, ${S.loc.country}`],["Source",`${S.loc.source} · WMO ${S.loc.wmo}`],
+   ["Latitude, longitude",`${fmt(S.loc.lat,2)}°, ${fmt(S.loc.lon,2)}°`],["Elevation",`${fmt(S.loc.elev*3.281,0)} ft (${fmt(S.loc.elev,0)} m)`],
+   ["Climate zone (number)",`${d.zone.num}  (HDD18 ${fmt(d.zone.hdd18,0)} °C·day, CDD10 ${fmt(d.zone.cdd10,0)} °C·day)`]].map(([a,b])=>`<tr><th>${a}</th><td>${b}</td></tr>`).join("");
+}
+function readFile(file){
+  const fr=new FileReader();
+  fr.onload=()=>{try{
+    if(/\.json$/i.test(file.name)){const j=JSON.parse(fr.result);if(j.app!=="climate-reader")throw new Error("This JSON isn't a Climate Reader session file.");
+      $("#studentName").value=j.name||"";loadRows(j.loc,j.rows,j.fileName,{guesses:j.guesses||{},answers:j.answers||{},picks:j.picks||[],revealed:j.revealed||{},stratRevealed:!!j.stratRevealed});}
+    else{const p=parseEPW(fr.result);loadRows(p.loc,p.rows,file.name);}
+  }catch(e){$("#loadMsg").textContent=e.message;}};
+  fr.readAsText(file);
+}
+function persist(){store.set("cr-name",$("#studentName").value);if(S.data&&!$("section[data-tab=export]").hidden)buildKit();}
+
+/* ---------- nav + wiring ---------- */
+function go(tab){
+  if(tab!=="load"&&!S.data){$("#loadMsg").textContent="Load a weather file first.";tab="load";}
+  document.querySelectorAll("section[data-tab]").forEach(s=>s.hidden=s.dataset.tab!==tab);
+  document.querySelectorAll("nav.tabs button[data-go]").forEach(b=>b.setAttribute("aria-selected",b.dataset.go===tab));
+  if(tab==="export")buildKit();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+document.querySelectorAll("[data-next]").forEach(b=>b.onclick=()=>go(b.dataset.next));
+$("#fileIn").onchange=e=>{if(e.target.files[0])readFile(e.target.files[0]);};
+document.querySelector("label[for=fileIn]").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#fileIn").click();}};
+const drop=$("#drop");
+["dragenter","dragover"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)readFile(f);});
+$("#sampleBtn").onclick=()=>{$("#loadMsg").textContent="Loading the sample…";
+  fetch("sample-golden-co.epw").then(r=>{if(!r.ok)throw new Error("Couldn't load the sample file.");return r.text();})
+  .then(t=>{const p=parseEPW(t);loadRows(p.loc,p.rows,"sample-golden-co.epw (example)");}).catch(e=>$("#loadMsg").textContent=e.message);};
+$("#studentName").value=store.get("cr-name")||"";
+$("#studentName").oninput=persist;
+function setUnit(u){S.unit=u;$("#uF").setAttribute("aria-pressed",u==="F");$("#uC").setAttribute("aria-pressed",u==="C");if(S.data){buildCards();renderStrat();buildKit();}}
+$("#uF").onclick=()=>setUnit("F");$("#uC").onclick=()=>setUnit("C");
+$("#pdfBtn").onclick=()=>{buildKit();try{window.print();}catch(e){}$("#exportMsg").textContent="If no print dialog opened, this preview blocks printing; the hosted page opens it. Choose \"Save as PDF\".";};
+$("#svgBtn").onclick=()=>S.data&&download(`sun-path-${slug()}.svg`,sunSVG(),"image/svg+xml");
+$("#dxfBtn").onclick=()=>S.data&&download(`sun-path-${slug()}.dxf`,sunDXF(),"application/dxf");
+$("#saveBtn").onclick=()=>S.data&&download(`climate-reader-${slug()}.json`,sessionJSON(),"application/json");
+// open in a working state with the sample
+$("#sampleBtn").click();
+})();
+</script>
