@@ -173,6 +173,17 @@ footer{margin-top:40px;font-size:15px;color:var(--muted);border-top:1px solid va
 footer p{margin:0 0 6px;max-width:70ch}
 @media (max-width:640px){.pace{grid-template-columns:1fr}.pace .now{order:-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.edfab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:calc(100vw - 32px)}
+.edfab .btn{box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.edpanel{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:12px 14px;width:min(340px,calc(100vw - 32px));font-size:14px;display:grid;gap:8px;box-shadow:0 4px 18px rgba(0,0,0,.16)}
+.edpanel p{margin:0}.edpanel .row{display:flex;gap:8px;flex-wrap:wrap}
+.edpanel textarea{font:inherit;font-size:15px;width:100%;min-height:64px;padding:6px 8px;border:1px solid var(--muted);border-radius:4px;background:var(--paper);color:var(--ink)}
+.btn.ghost{background:var(--paper);color:var(--accent)}
+body.editing #view [data-ed]{outline:1px dashed var(--muted);outline-offset:3px;cursor:text}
+body.editing #view [data-ed]:focus{outline:2px solid var(--accent)}
+#view .edited{background:color-mix(in srgb,var(--c-quiz) 16%,transparent);box-shadow:-4px 0 0 var(--c-quiz)}
+body.editing main{padding-bottom:240px}
+.flow{margin:0;padding-left:1.3em;display:grid;gap:4px}
 </style>
 
 <a class="skip" href="#view">Skip to content</a>
@@ -188,7 +199,7 @@ footer p{margin:0 0 6px;max-width:70ch}
     <div class="who" id="who" hidden></div>
   </header>
   <main id="view" tabindex="-1"></main>
-  <footer><p>Class meets Thursdays, 9:30 AM to 12:15 PM. Quizzes open Friday at 9 AM and are due Sunday at 11:59 PM. Labs are due Tuesday at 11:59 PM, except in the week before a crit, when they are due Sunday so crit week stays clear.</p><p>Pages marked “Coming soon” are still being written.</p><p class="label" id="lastUpdate">Last update: Nov 18, 2026, 12:50 AM</p></footer>
+  <footer><p>Class meets Thursdays, 9:30 AM to 12:15 PM. Quizzes open Friday at 9 AM and are due Sunday at 11:59 PM. Labs are due Tuesday at 11:59 PM, except in the week before a crit, when they are due Sunday so crit week stays clear.</p><p>Pages marked “Coming soon” are still being written.</p><p class="label" id="lastUpdate">Last update: Nov 18, 2026, 1:20 AM</p></footer>
 </div>
 
 <script src="config.js"></script>
@@ -388,12 +399,12 @@ function abar(m){const A=ASSIGN[m.a];if(!A)return "";const c=curWeek();const ws=
   const seg=w=>{const l=labOf(w),st=c>w?"done":c===w?"now":"";
     if(l)return `<li class="${st}" style="--seg:var(--c-lab)"><span class="bar"></span><a href="#${slug(w,l.i)}"><b>${esc(l.name)} adds</b> ${esc(shortFeed(w))}</a></li>`;
     const ai=W[w].items.findIndex(x=>x[0]==="assign");
-    return `<li class="${st} due" style="--seg:var(--c-assign)"><span class="bar"></span><a href="#${slug(w,ai<0?0:ai)}"><b>${esc(m.a)} due</b> Pin-up, Thu ${esc(short(day(w)))}</a></li>`;};
+    return `<li class="${st} due" style="--seg:var(--c-assign)"><span class="bar"></span><a href="#${slug(w,ai<0?0:ai)}"><b>${esc(m.a)}</b> Draft Tue ${esc(short(day(w,-2)))}, crit Thu ${esc(short(day(w)))}, final ${w===9?"after break":"Tue "+esc(short(day(w,5)))}</a></li>`;};
   const ai=W[A.wk].items.findIndex(x=>x[0]==="assign");
   return `<div class="abar" aria-label="${esc(m.a)} progress">
     <p class="abar-head"><a href="#${slug(A.wk,ai)}"><span class="k">${esc(m.a)}</span> ${esc(A.title)}</a><span class="cnt">${done} of ${labs} labs in</span></p>
     <ol>${ws.map(seg).join("")}</ol>
-    <div class="deliv"><p>${esc(A.goal)}</p><p class="label">What your project should have at the pin-up</p><ul>${A.has.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+    <div class="deliv"><p>${esc(A.goal)}</p><p class="label">What your pair's project should have at the pin-up</p><ul>${A.has.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
   </div>`;}
 
 function home(){
@@ -419,7 +430,8 @@ const OPENMOVE=`<p>Each lab ends with one move of your own: about 150 words and 
 <p>Meeting all five earns 24 of 30. Each criterion you push beyond earns up to 2 more, and each concern costs up to 4.</p>`;
 const PEER=`<p>You review two classmates' spreads. Score the rubric first, then write three lines, each starting from one of these:</p>
 <ul><li>“The move I read is ___. I wasn't sure whether you meant ___.”</li><li>“Your ___ convinced me. I'd believe it more with ___.”</li><li>“This changes your ___ in A0_ by ___.”</li><li>“What this could cost you is ___. Have you checked ___?”</li><li>“From across the room I could read ___; I lost ___.”</li></ul>`;
-const PINUP=w=>`<p>You pin up in groups of six, with one critic leading each group. Everyone works from a pin-up card with three prompts, and critics write a short note on the card before they speak, so every review is heard.</p><p>Peers score your spread on the ${esc(W[w].crit)} rubric; the TA collects the cards and returns them with your score.</p>`;
+const CRITFLOW=w=>`<ol class="flow"><li>Draft due ${esc(fmt(day(w,-2)))}, 11:59 PM, with your last lab of the module inside it.</li><li>For extra credit, give one classmate's draft an extended peer review before class.</li><li>Crit on ${esc(fmt(day(w)))}.</li><li>Final due ${w===9?"after spring break":esc(fmt(day(w,5)))+", 11:59 PM"}, with your labs revised. Together they become this module's folio chapter.</li></ol>`;
+const PINUP=w=>`<p>Assignments are done in pairs with your studio partner. Labs are your own.</p><p>You pin up in groups of six, with one critic leading each group. Everyone works from a pin-up card with three prompts, and critics write a short note on the card before they speak, so every review is heard.</p><p>Peers score your spread on the ${esc(W[w].crit)} rubric; the TA collects the cards and returns them with your score.</p>`;
 function itemSections(w,k,it){const L=it[3]||{};
   const sec=(h,body)=>`<div class="sec"><h3>${h}</h3>${body}</div>`;const p=t=>`<p>${esc(t)}</p>`;
   if(k==="lab"){let h="";
@@ -437,10 +449,10 @@ function itemSections(w,k,it){const L=it[3]||{};
   if(k==="class")return sec("What we do",p(W[w].summary[1]||W[w].summary[0]));
   if(k==="quiz"&&w===2)return sec("How it works",`<p>Quiz 1 is a trial run. You run the Climate Reader on the city you were assigned, export the PDF checklist, and upload it. It opens Friday at 9 AM and is due Sunday at 11:59 PM.</p>`);
   if(k==="quiz")return sec("How it works",`<p>The quiz opens Friday at 9 AM and is due Sunday at 11:59 PM. You get one attempt. Each question is set on the case building, has three options, and asks you how sure you are.</p><p>Where a question asks for a number, your numbers differ from your classmates'. After the due date the questions are checked and approved, and on Wednesday you see your score with a reason for every option.</p>`)+sec("Quiz",``);
-  if(k==="crit")return sec("Format",PINUP(w));
+  if(k==="crit")return sec("How crit week runs",CRITFLOW(w))+sec("Format",PINUP(w));
   if(k==="assign"){if(/draft session/.test(it[2]))return sec("What happens",`<p>Studio time to pull your lab spreads into the assignment draft, with the TAs reading over your shoulder. Bring your spreads and your latest plans.</p>`);
     const AS=ASSIGN[it[2].slice(0,3)];
-    return (AS?sec("What your project should have",`<p>${esc(AS.goal)}</p><ul>${AS.has.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"")+sec("Brief",`<p>Each assignment is written as a purpose, a task and the criteria it is scored on, with one example sheet and a single-point rubric with a “beyond” column.</p><p>You score your own sheets before submitting, and a peer scores them at the pin-up.</p><p class="note">Sheet and word limits: to be set by the instructor.</p>`)+sec("Built from","<p>"+esc({A01:"Labs 1, 2 and 3: climate, zoning and program, massing for sun and daylight.",A02:"Labs 4, 5 and 6: envelope, structure and MEP in section.",A03:"Labs 7 and 8: occupancy, egress and access, the plan check, and your details and mockup."}[it[2].slice(0,3)]||"")+"</p>");}
+    return (AS?sec("What your project should have",`<p>${esc(AS.goal)}</p><ul>${AS.has.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"")+sec("Brief",`<p>You do the assignment in a pair with your studio partner. The labs it draws on are your own.</p><p>Each assignment is written as a purpose, a task and the criteria it is scored on, with one example sheet and a single-point rubric with a “beyond” column.</p><p>You score your own sheets before submitting, and a peer scores them at the pin-up.</p><p class="note">Sheet and word limits: to be set by the instructor.</p>`)+sec("How the week runs",CRITFLOW(ASSIGN[it[2].slice(0,3)]?ASSIGN[it[2].slice(0,3)].wk:w))+sec("Built from","<p>"+esc({A01:"Labs 1, 2 and 3: climate, zoning and program, massing for sun and daylight.",A02:"Labs 4, 5 and 6: envelope, structure and MEP in section.",A03:"Labs 7 and 8: occupancy, egress and access, the plan check, and your details and mockup."}[it[2].slice(0,3)]||"")+"</p>");}
   if(k==="folio")return sec("What to hand in",`<p>Each module is one chapter: its lab spreads, then its assignment, revised where the crits asked.</p>`)+sec("Scoring",`<p>You score your folio on the single-point rubric first. Two classmates score it next, and the instructor or TA confirms the score.</p>`);
   return "";
 }
@@ -478,12 +490,12 @@ function paintWho(){
   inp.disabled=false;btn.disabled=false;note.textContent="Your key stays with you all semester.";
   if(ME){f.hidden=true;who.hidden=false;
     who.innerHTML=`<span class="label">Key</span><b>${esc(ME.label)}</b><a href="#me">My progress</a>${ME.role!=="student"?`<a href="#admin">${ME.role==="admin"?"Admin":"TA"}</a>`:""}<button class="linkbtn" id="signout" type="button">Sign out</button>`;
-    document.getElementById("signout").onclick=()=>{ME=null;KEY="";store.set("");paintWho();route();};
+    document.getElementById("signout").onclick=()=>{ME=null;KEY="";store.set("");EDITING=false;document.body.classList.remove("editing");paintWho();route();paintEd();};
   } else {f.hidden=false;who.hidden=true;}
 }
 async function signIn(k){
   const note=document.getElementById("keyNote");
-  try{ME=await rpc("whoami",{p_code:k});KEY=k;store.set(k);paintWho();route();}
+  try{ME=await rpc("whoami",{p_code:k});KEY=k;store.set(k);paintWho();route();loadEdits();}
   catch(e){ME=null;note.innerHTML=`<span class="err">${esc(e.message)}</span>`;}
 }
 document.getElementById("keyForm").addEventListener("submit",e=>{e.preventDefault();const k=document.getElementById("studentKey").value.trim();if(k)signIn(k);});
@@ -681,6 +693,70 @@ async function mountAdmin(el){
     catch(e){m.innerHTML=`<span class="err">${esc(e.message)}</span>`;}};
 }
 
+
+/* ---------- Edit mode (admin key only; students never see drafts) ---------- */
+let EDITS=[],EDITING=false,EDMSG="";
+const EDLS="arch6171-edits",NOTE="(page note)";
+const isAdmin=()=>!!(ME&&ME.role==="admin");
+const edPage=()=>(location.hash||"#home").slice(1)||"home";
+const edCE=(()=>{const d=document.createElement("div");d.contentEditable="plaintext-only";return d.contentEditable==="plaintext-only"?"plaintext-only":"true";})();
+const norm=t=>t.replace(/[ \t ]+/g," ").replace(/\s*\n\s*/g,"\n").trim();
+function edLocal(){try{return JSON.parse(localStorage.getItem(EDLS)||"[]")}catch(e){return []}}
+function edKeep(){try{localStorage.setItem(EDLS,JSON.stringify(EDITS))}catch(e){}}
+async function loadEdits(){if(!isAdmin()){paintEd();return;}
+  try{EDITS=(await rpc("list_edits",{p_code:KEY}))||[];edKeep();EDMSG="";}
+  catch(e){EDITS=edLocal();EDMSG="Couldn't reach the edits table, so these are this device's copies. Has migrate-v3 been run?";}
+  route();paintEd();}
+const ED_SKIP="#qz,#a,#ck,#m,#edadm,form,.msg,nav.crumb,.pace,.legend,.card ul,.abar ol,.card-head,.page-head .kind";
+function edTargets(v){return [...v.querySelectorAll("h2,h3,p,li")].filter(el=>!el.closest(ED_SKIP)&&!el.querySelector("p,li,ul,ol,div,h2,h3")&&el.textContent.trim());}
+function applyEdits(v){if(!isAdmin())return;const pg=edPage();const map=new Map(EDITS.filter(e=>e.page===pg&&e.orig!==NOTE).map(e=>[e.orig,e]));
+  for(const el of edTargets(v)){const o=norm(el.textContent);el.dataset.orig=o;el.dataset.ed="";
+    const e=map.get(o);if(e){el.textContent=e.new;el.classList.add("edited");el.title="Your draft edit";}
+    if(EDITING)el.contentEditable=edCE;}}
+function edFind(pg,o){return EDITS.find(x=>x.page===pg&&x.orig===o);}
+async function edSave(pg,o,nt,el){
+  const i=EDITS.findIndex(x=>x.page===pg&&x.orig===o);
+  if(nt===o||(o===NOTE&&!nt)){if(i>=0)EDITS.splice(i,1);if(el){el.classList.remove("edited");}}
+  else{const rec={page:pg,orig:o,new:nt,at:new Date().toISOString()};if(i>=0)EDITS[i]=rec;else EDITS.push(rec);if(el)el.classList.add("edited");}
+  edKeep();EDMSG="Saving…";paintEd();
+  try{await rpc("save_edit",{p_code:KEY,p_page:pg,p_orig:o,p_new:(o===NOTE&&!nt)?NOTE:nt});EDMSG="Saved.";}
+  catch(e){EDMSG="Saved on this device only: "+e.message;}
+  paintEd();}
+document.addEventListener("focusout",e=>{if(!EDITING)return;const el=e.target.closest&&e.target.closest("#view [data-ed]");if(!el)return;
+  const pg=edPage(),o=el.dataset.orig,prev=edFind(pg,o),cur=prev?prev.new:o,nt=norm(el.innerText);
+  if(!nt){el.textContent=cur;return;}if(nt!==cur)edSave(pg,o,nt,el);});
+document.addEventListener("keydown",e=>{if(!EDITING)return;const el=e.target.closest&&e.target.closest("#view [data-ed]");if(!el)return;
+  if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();el.blur();}
+  if(e.key==="Escape"){const pg=edPage(),p=edFind(pg,el.dataset.orig);el.textContent=p?p.new:el.dataset.orig;el.blur();}});
+document.addEventListener("click",e=>{if(EDITING&&e.target.closest("#view [data-ed]")&&e.target.closest("a"))e.preventDefault();},true);
+function edToggle(){EDITING=!EDITING;document.body.classList.toggle("editing",EDITING);
+  document.querySelectorAll("#view [data-ed]").forEach(el=>{if(EDITING)el.contentEditable=edCE;else el.removeAttribute("contenteditable");});
+  EDMSG="";paintEd();}
+const edJSON=()=>JSON.stringify({site:"arch6171",exported:new Date().toISOString(),edits:EDITS},null,1);
+async function edCopy(out){const t=edJSON();try{await navigator.clipboard.writeText(t);out.textContent="Copied. Paste it in the chat with Claude.";}
+  catch(e){const ta=document.createElement("textarea");ta.value=t;ta.readOnly=true;out.replaceChildren(ta);ta.select();out.append(" Copy this text and paste it in the chat with Claude.");}}
+function edDownload(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([edJSON()],{type:"application/json"}));a.download="arch6171-edits.json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function paintEd(){let box=document.getElementById("edfab");
+  if(!isAdmin()){if(box)box.remove();return;}
+  if(!box){box=document.createElement("div");box.id="edfab";box.className="edfab";document.body.appendChild(box);}
+  const pg=edPage(),n=EDITS.filter(e=>e.page===pg&&e.orig!==NOTE).length,note=edFind(pg,NOTE);
+  box.innerHTML=(EDITING?`<div class="edpanel" role="region" aria-label="Edit this page">
+    <p><b>Editing this page.</b> Click any text to change it. Enter saves, Esc undoes. Put notes for Claude in [brackets].</p>
+    <p class="label">${n} change${n===1?"":"s"} here · ${EDITS.length} in all · only you see them</p>
+    <label class="label" for="edNote">Note to Claude about this page</label><textarea id="edNote" placeholder="Anything that isn't a text change: move this, add a figure, cut this section…">${esc(note?note.new:"")}</textarea>
+    <div class="row"><button class="btn ghost" type="button" id="edCopy">Copy edits</button><button class="btn ghost" type="button" id="edDl">Download</button></div>
+    <p class="msg" id="edOut" aria-live="polite">${esc(EDMSG)}</p></div>`:"")+`<button class="btn" type="button" id="edTog" aria-pressed="${EDITING}">${EDITING?"Done editing":"Edit page"}</button>`;
+  box.querySelector("#edTog").onclick=edToggle;
+  if(EDITING){const ta=box.querySelector("#edNote");ta.onchange=()=>{const v=norm(ta.value),p=edFind(pg,NOTE);if(v!==(p?p.new:""))edSave(pg,NOTE,v,null);};
+    box.querySelector("#edCopy").onclick=()=>edCopy(box.querySelector("#edOut"));box.querySelector("#edDl").onclick=edDownload;}}
+addEventListener("hashchange",()=>paintEd());
+function mountEditsAdmin(el){el.id="edadm";let armed=false;
+  const draw=()=>{el.innerHTML=`<div class="panel"><h3>Page edits</h3><p class="msg">${EDITS.length} draft edit${EDITS.length===1?"":"s"} saved. Send them to Claude, and once the cleaned page is uploaded, clear them here.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="eaCopy" type="button">Copy edits</button><button class="btn ghost" id="eaDl" type="button">Download</button><button class="btn" id="eaClr" type="button"${EDITS.length?"":" disabled"}>${armed?"Press again to clear all":"Clear edits"}</button></div><p class="msg" id="eaOut" aria-live="polite"></p></div>`;
+    el.querySelector("#eaCopy").onclick=()=>edCopy(el.querySelector("#eaOut"));el.querySelector("#eaDl").onclick=edDownload;
+    el.querySelector("#eaClr").onclick=async()=>{if(!armed){armed=true;draw();setTimeout(()=>{if(armed){armed=false;draw();}},5000);return;}
+      armed=false;try{const r=await rpc("clear_edits",{p_code:KEY});EDITS=[];edKeep();draw();el.querySelector("#eaOut").textContent="Cleared "+((r&&r.cleared)||0)+".";paintEd();}
+      catch(e){draw();el.querySelector("#eaOut").textContent=e.message;}};};
+  draw();}
 function route(){const h=(location.hash||"#home").slice(1);let m;
   const v=document.getElementById("view");
   if(m=h.match(/^wk-(\d+)-(\d+)$/)){v.innerHTML=itemPage(+m[1],+m[2]);
@@ -693,6 +769,8 @@ function route(){const h=(location.hash||"#home").slice(1);let m;
   else if(m=h.match(/^check-([\w-]+)$/)){v.innerHTML=`<nav class="crumb" aria-label="Breadcrumb"><a href="#home">Course</a>/<a href="#admin">Admin</a>/<span>Question check</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Question check</span><h2 tabindex="-1">${esc(m[1])}</h2></div><div id="ck"></div>`;mountCheck(v.querySelector("#ck"),m[1]);}
   else if(m=h.match(/^quiz-([\w-]+)$/)){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>Quiz</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Quiz</span><h2 tabindex="-1">${esc(m[1]==="practice"?"Practice quiz":m[1])}</h2></div><div id="qz"></div>`;mountQuiz(v.querySelector("#qz"),m[1]);}
   else v.innerHTML=home();
+  applyEdits(v);
+  if(h==="admin"&&isAdmin()){const p=document.createElement("div");v.appendChild(p);mountEditsAdmin(p);}
   document.querySelector(".wrap").classList.toggle("wide",v.querySelector(".mrow")!==null);
   window.scrollTo(0,0);
   if(FIRST){FIRST=false;return;}
@@ -701,6 +779,6 @@ function route(){const h=(location.hash||"#home").slice(1);let m;
 }
 let FIRST=true;
 addEventListener("hashchange",route);
-paintWho();route();
+paintWho();route();paintEd();
 if(DB_ON&&KEY) signIn(KEY);
 </script>
