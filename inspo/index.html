@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspo · ARCH 6171</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root{--bg:#000;--card:#111;--ink:#f2f2f2;--sub:#bdbdbd;--dim:#8a8a8a;--line:#2a2a2a;--on:#fff;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "IBM Plex Sans",system-ui,sans-serif;overflow-x:hidden}
+a{color:inherit}
+header{padding:28px 24px 8px;max-width:1500px;margin:0 auto}
+header .code{font:500 12px "IBM Plex Mono",monospace;letter-spacing:.08em;color:var(--sub);text-decoration:none}
+header h1{font:800 clamp(34px,6vw,64px)/1 Archivo,sans-serif;margin:8px 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--sub);max-width:60ch}
+.wrap{max-width:1500px;margin:0 auto;padding:16px 24px 80px;display:grid;grid-template-columns:200px 1fr;gap:32px;align-items:start}
+aside{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;padding-right:4px}
+aside h2{font:500 12px "IBM Plex Mono",monospace;letter-spacing:.08em;color:var(--sub);margin:0 0 10px;text-transform:uppercase}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font:500 13px "IBM Plex Mono",monospace;background:none;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer}
+.tag:hover{color:var(--ink);border-color:#555}
+.tag[aria-pressed=true]{background:var(--on);color:#000;border-color:var(--on)}
+.tag.grp{color:var(--ink);font-weight:500}
+.sep{flex-basis:100%;height:8px}
+.ctl{margin-top:14px;display:flex;gap:12px;align-items:center;font:13px "IBM Plex Mono",monospace;color:var(--dim)}
+.ctl button{background:none;border:0;color:var(--sub);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+.board{columns:4 260px;column-gap:28px}
+.pin{break-inside:avoid;display:inline-block;width:100%;margin:0 0 34px}
+.pin[hidden]{display:none}
+.img{display:block;background:var(--card);border-radius:3px;overflow:hidden}
+.img img{display:block;width:100%;height:auto}
+.ph{aspect-ratio:var(--ar,4/5);display:flex;flex-direction:column;justify-content:space-between;padding:16px;border:1px solid var(--line);text-decoration:none}
+.ph b{font:800 22px/1.1 Archivo,sans-serif;color:var(--ink)}
+.ph span{font:12px "IBM Plex Mono",monospace;color:var(--sub)}
+.cap{padding:8px 2px 0}
+.cap h3{font:600 15px/1.25 Archivo,sans-serif;margin:0}
+.cap .by{font-size:13px;color:var(--sub);margin-top:2px}
+.cap .d{font-size:13px;color:var(--ink);margin:6px 0 0;opacity:.85}
+.cap .meta{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:6px;font:12px "IBM Plex Mono",monospace;color:var(--dim)}
+.cap .meta a{color:var(--sub)}
+.cap .cr{font-size:11px;color:var(--dim);margin-top:4px}
+.cap .t{color:var(--dim);cursor:pointer}
+.cap .t:hover{color:var(--ink)}
+.count{font:13px "IBM Plex Mono",monospace;color:var(--dim);margin:0 0 16px}
+@media (max-width:760px){
+  .wrap{grid-template-columns:1fr;gap:12px;padding:8px 16px 60px}
+  aside{top:0;z-index:5;background:rgba(0,0,0,.94);padding:10px 0;max-height:40vh}
+  header{padding:20px 16px 4px}
+  .board{columns:2 150px;column-gap:16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="code" href="../#home">ARCH 6171 · SEEING THE INVISIBLE</a>
+  <h1>Inspo</h1>
+  <p>Ways people have drawn, photographed and built the things we can't see: heat, air, pressure, light, force and carbon. Switch tags on to mix groups.</p>
+</header>
+<div class="wrap">
+  <aside>
+    <h2>Filter</h2>
+    <div class="tags" id="tags"></div>
+    <div class="ctl"><button id="clear" type="button">Show all</button><span id="mode"></span></div>
+  </aside>
+  <main>
+    <p class="count" id="count"></p>
+    <div class="board" id="board"></div>
+  </main>
+</div>
+<script src="../config.js"></script>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const slug=s=>s.toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+// Repeatable random from a seed, so the scatter stays put between visits.
+const rnd=n=>{let x=Math.sin(n*9301+49297)*233280;return x-Math.floor(x)};
+const ON=new Set();
+let PINS=[];
+
+async function load(){
+  const refs=await (await fetch("refs.json")).json();
+  let src=[];try{const r=await fetch("sources.json",{cache:"no-store"});if(r.ok)src=await r.json();}catch(e){}
+  const byN=Object.fromEntries(src.map(s=>[s.n,s]));
+  let n=0;const groupTags=[],themeTags=[];
+  refs.forEach(([g,themes,items])=>{
+    const gt=slug(g);groupTags.push(gt);
+    const th=themes.split(",").map(t=>slug(t.trim())).filter(Boolean);
+    th.forEach(t=>{if(!themeTags.includes(t)&&!groupTags.includes(t))themeTags.push(t)});
+    items.forEach(([title,author,desc])=>{
+      n++;const s=byN[n]||{};
+      const m=title.match(/\(([^)]*\d{4}[^)]*)\)\s*$/);
+      PINS.push({n,title:m?title.slice(0,m.index).trim():title,year:s.year||(m?m[1]:""),author,desc,
+        tags:[gt,...th],page:s.image_page||"",img:s.local||"",credit:s.credit||"",open:/^(PD|CC|NASA)/.test(s.licence||"")});
+    });
+  });
+  renderTags(groupTags,themeTags);render();
+  loadPrivate();
+}
+// Wikimedia Commons allows showing its files directly; this asks Commons for a 1000 px version.
+function commons(page){const m=(page||"").match(/commons\.wikimedia\.org\/wiki\/File:(.+)$/);return m?`https://commons.wikimedia.org/wiki/Special:FilePath/${m[1]}?width=1000`:"";}
+// Signed-in students get short-lived links to the private shelf (Supabase Storage bucket "inspo", files named 01.jpg ... 65.jpg).
+async function loadPrivate(){
+  const CFG=window.ARCH6171_CONFIG||{};let key="";try{key=localStorage.getItem("arch6171-key")||"";}catch(e){}
+  if(!key||!CFG.url||!CFG.key||/PASTE/.test(CFG.key))return;
+  try{const r=await fetch(`${CFG.url}/functions/v1/inspo-images`,{method:"POST",headers:{"Content-Type":"application/json","apikey":CFG.key},body:JSON.stringify({code:key})});
+    if(!r.ok)return;const map=await r.json();let changed=false;
+    for(const [name,url] of Object.entries(map)){const n=parseInt(name,10);const p=PINS.find(x=>x.n===n);if(p){p.signed=url;changed=true;}}
+    if(changed){SIGNED=true;render();}
+  }catch(e){}
+}
+let SIGNED=false;
+function renderTags(g,t){
+  const el=document.getElementById("tags");
+  el.innerHTML=g.map(x=>`<button class="tag grp" type="button" data-t="${x}" aria-pressed="false">#${x}</button>`).join("")+
+    `<span class="sep"></span>`+t.map(x=>`<button class="tag" type="button" data-t="${x}" aria-pressed="false">#${x}</button>`).join("");
+  el.onclick=e=>{const b=e.target.closest(".tag");if(b)toggle(b.dataset.t);};
+}
+function toggle(t){ON.has(t)?ON.delete(t):ON.add(t);sync();}
+function sync(){
+  document.querySelectorAll(".tag").forEach(b=>b.setAttribute("aria-pressed",ON.has(b.dataset.t)));
+  let shown=0;
+  document.querySelectorAll(".pin").forEach(p=>{const tg=p.dataset.tags.split(" ");const ok=!ON.size||tg.some(t=>ON.has(t));p.hidden=!ok;if(ok)shown++;});
+  document.getElementById("count").textContent=ON.size?`${shown} of ${PINS.length}`:`${PINS.length} references`;
+  document.getElementById("mode").textContent=ON.size?`${ON.size} tag${ON.size>1?"s":""} on`:"";
+}
+function render(){
+  document.getElementById("board").innerHTML=PINS.map(p=>{
+    const pad=Math.round(rnd(p.n)*36), shift=Math.round((rnd(p.n+99)-.5)*16), w=88+Math.round(rnd(p.n+7)*12);
+    const ar=["4/5","1/1","3/4","5/4","2/3"][Math.floor(rnd(p.n+3)*5)];
+    const src=p.signed||p.img||commons(p.page);
+    const pic=src?`<a class="img" href="${esc(p.page||src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="${esc(p.title)}" loading="lazy" onerror="this.closest('.img').classList.add('ph');this.remove()"></a>`:p.img?`<a class="img" href="${esc(p.page||p.img)}" target="_blank" rel="noopener"><img src="${esc(p.img)}" alt="${esc(p.title)}" loading="lazy"></a>`
+      :`<a class="img ph" style="--ar:${ar}" ${p.page?`href="${esc(p.page)}" target="_blank" rel="noopener"`:""}><b>${esc(p.title)}</b><span>${SIGNED?"Image at source →":"Image shows after you sign in · source →"}</span></a>`;
+    return `<article class="pin" data-tags="${p.tags.join(" ")}" style="padding-top:${pad}px;width:${w}%;margin-left:${Math.max(0,shift+(100-w)/2)}%">
+      ${pic}
+      <div class="cap">
+        <h3>${esc(p.title)}</h3>
+        <div class="by">${esc(p.author)}${p.year?` · ${esc(p.year)}`:""}</div>
+        <p class="d">${esc(p.desc)}</p>
+        <div class="meta">${p.tags.map(t=>`<span class="t" data-t="${t}">#${t}</span>`).join("")}${p.page?`<a href="${esc(p.page)}" target="_blank" rel="noopener">source ↗</a>`:""}</div>
+        ${p.credit?`<div class="cr">${esc(p.credit)}</div>`:""}
+      </div></article>`;}).join("");
+  document.getElementById("board").onclick=e=>{const t=e.target.closest(".t");if(t)toggle(t.dataset.t);};
+  document.getElementById("clear").onclick=()=>{ON.clear();sync();};
+  sync();
+}
+load();
+</script>
+</body>
+</html>
