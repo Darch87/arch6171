@@ -83,6 +83,31 @@ h2:focus{outline:none}
 .card li .d{font-size:14px;color:var(--muted);text-align:right}
 .card .more{font-size:14px;color:var(--muted)}
 @media (max-width:520px){.card li a{grid-template-columns:auto 1fr}.card li .d{grid-column:2;text-align:left}}
+/* module rows: four weeks across, assignment bar under them */
+.wrap.wide{max-width:1240px}
+.mrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mrow .card li a{grid-template-columns:auto 1fr}.mrow .card li .d{grid-column:2;text-align:left}
+.cards.after{margin-top:12px}
+.prep{margin-top:auto!important;padding-top:10px;border-top:1px solid var(--line);font-size:15px}
+.prep b{color:var(--c-lab)}
+.abar{margin-top:12px}
+.abar-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin:0 0 8px}
+.abar-head a{color:var(--ink);font-weight:600;text-decoration:none}.abar-head a:hover{text-decoration:underline}
+.abar-head .k{color:var(--c-assign)}
+.abar-head .cnt{font-size:14px;color:var(--muted)}
+.abar ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.abar li{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:14px}
+.abar .bar{display:block;height:12px;border-radius:2px;margin-right:-12px;background:var(--line);border:1px solid var(--seg);position:relative}
+.abar li:last-child .bar{margin-right:0}
+.abar li.done .bar{background:var(--seg)}
+.abar li.now .bar{background:linear-gradient(90deg,var(--seg) 50%,var(--line) 50%)}
+.abar li a{color:var(--ink);text-decoration:none}.abar li a:hover{text-decoration:underline}
+.abar li b{color:var(--seg);font-weight:600}
+.deliv{margin-top:12px;padding:14px 16px;border-left:4px solid var(--c-assign);background:var(--paper);border-radius:0 6px 6px 0}
+.deliv p{margin:0 0 6px;max-width:75ch}
+.deliv ul{margin:0;padding-left:20px;display:grid;gap:4px;max-width:75ch}
+@media (max-width:900px){.mrow{grid-template-columns:repeat(2,minmax(0,1fr))}.abar ol{grid-template-columns:repeat(2,minmax(0,1fr))}.abar li:nth-child(2) .bar{margin-right:0}}
+@media (max-width:560px){.mrow{grid-template-columns:1fr}.abar ol{grid-template-columns:1fr;gap:8px}.abar li{flex-direction:row;align-items:flex-start;gap:10px}.abar .bar{width:12px;height:auto;align-self:stretch;min-height:28px;margin:0 0 -8px 0}.abar li:last-child .bar{margin-bottom:0}.abar li.now .bar{background:linear-gradient(180deg,var(--seg) 50%,var(--line) 50%)}}
 /* item + week pages */
 .crumb{font-size:15px;margin-bottom:16px;display:flex;gap:6px;flex-wrap:wrap;color:var(--muted)}
 .page-head{display:grid;gap:6px;padding-bottom:14px;border-bottom:2px solid var(--c,var(--ink));margin-bottom:18px}
@@ -163,7 +188,7 @@ footer p{margin:0 0 6px;max-width:70ch}
     <div class="who" id="who" hidden></div>
   </header>
   <main id="view" tabindex="-1"></main>
-  <footer><p>Class meets Thursdays, 9:30 AM to 12:15 PM. Quizzes open Friday at 9 AM and are due Sunday at 11:59 PM. Labs are due Tuesday at 11:59 PM, except in the week before a crit, when they are due Sunday so crit week stays clear.</p><p>Pages marked “Coming soon” are still being written.</p><p class="label" id="lastUpdate">Last update: Nov 18, 2026, 12:25 AM</p></footer>
+  <footer><p>Class meets Thursdays, 9:30 AM to 12:15 PM. Quizzes open Friday at 9 AM and are due Sunday at 11:59 PM. Labs are due Tuesday at 11:59 PM, except in the week before a crit, when they are due Sunday so crit week stays clear.</p><p>Pages marked “Coming soon” are still being written.</p><p class="label" id="lastUpdate">Last update: Nov 18, 2026, 12:50 AM</p></footer>
 </div>
 
 <script src="config.js"></script>
@@ -177,11 +202,20 @@ const pad=w=>String(w).padStart(2,"0");
 
 const MODULES=[
   {id:"Start",title:"Getting started",weeks:[1]},
-  {id:"Module 1",title:"Site, climate and massing",weeks:[2,3,4,5]},
-  {id:"Module 2",title:"Energy, structure and systems",weeks:[6,7,8,9,10]},
-  {id:"Module 3",title:"Occupancy, egress, access and details",weeks:[11,12,13,14]},
+  {id:"Module 1",title:"Site, climate and massing",weeks:[2,3,4,5],a:"A01"},
+  {id:"Module 2",title:"Energy, structure and systems",weeks:[6,7,8,9,10],a:"A02"},
+  {id:"Module 3",title:"Occupancy, egress, access and details",weeks:[11,12,13,14],a:"A03"},
   {id:"Finish",title:"Folio and finals",weeks:[15,16,17]},
 ];
+/* Assignments: what the project should have at the pin-up, in terms of project development. Draft for the instructor to edit. */
+const ASSIGN={
+  A01:{wk:5,title:"Site, climate and massing",goal:"Your project gets a site strategy and a massing that answers the climate, fits the zoning and holds the program.",
+    has:["The three passive strategies that matter most on your site, each with its share of comfortable hours.","The zoning envelope (FAR, setbacks, height) and a room schedule with net and gross area.","One massing that fits the envelope and holds the program, tested for sun and daylight in plan and section.","Overhang depths and daylight depth drawn on that section, with the rule you used."]},
+  A02:{wk:9,title:"Form, structure and systems",goal:"Your massing becomes a building section where envelope, structure and systems share the same depth.",
+    has:["One section at true depth through the main spaces.","Wall and roof assemblies with their U-values, and the passive strategies drawn in section.","A structural grid with spans and member depths drawn in place.","Zones, distribution and plenum depth, coordinated with the structure."]},
+  A03:{wk:14,title:"Egress, access and details",goal:"Your plans pass a code check, and one wall is resolved down to its details and a mockup.",
+    has:["Plans with occupant loads, exits, travel distance and an accessible route, passed through the plan check.","A wall section with all four control layers traced and continuous.","Key details for that wall and a physical mockup of one transition."]},
+};
 const S={soon:"Coming soon",draft:"Draft",live:"Live"};
 const SUNDUE=new Set([4,8,13]); // week before a crit: lab due Sunday
 /* Week data. intro = two sentences for the home card. summary = the week page's opening, in the course's own voice.
@@ -343,13 +377,31 @@ function card(w){const d=W[w],c=curWeek();const isNow=w===Math.max(1,c);
     <p>${esc(d.intro)}</p>
     ${its.length?`<ul>${its.map((it,i)=>{const K=KINDS[it[0]];return `<li><a href="#${slug(w,i)}" style="--c:var(${K.c})"><span class="k">${K.label}</span><span class="t">${esc(it[2].replace(/^(Lab|Quiz) \d+ · /,""))}</span><span class="d">${esc(shortDue(w,it[0]))}</span></a></li>`}).join("")}</ul>`:""}
     ${extra>0?`<a class="more" href="#wk-${w}">and ${extra} more on the week page</a>`:""}
+    ${prepLine(w)}
   </article>`;}
+function labOf(w){const it=W[w]&&W[w].items.find(x=>x[0]==="lab");return it?{name:it[2].split(" · ")[0],L:it[3]||{},i:W[w].items.indexOf(it)}:null;}
+function prepLine(w){const l=labOf(w);if(!l||!l.L.feeds)return "";const m=l.L.feeds.match(/^(A0\d(?: section)?):?\s*(.*)$/);
+  const a=m?m[1]:"the assignment",t=m?m[2]:l.L.feeds;return `<p class="prep"><b>Prepares ${esc(a)}:</b> ${esc(t.charAt(0).toUpperCase()+t.slice(1))}</p>`;}
+function shortFeed(w){const l=labOf(w);if(!l||!l.L.feeds)return "";const m=l.L.feeds.match(/^A0\d(?: section)?:?\s*([^.]*)/);return (m?m[1]:l.L.feeds.split(".")[0]);}
+function abar(m){const A=ASSIGN[m.a];if(!A)return "";const c=curWeek();const ws=m.weeks.slice(0,4);
+  const labs=ws.filter(w=>labOf(w)).length,done=ws.filter(w=>labOf(w)&&c>w).length;
+  const seg=w=>{const l=labOf(w),st=c>w?"done":c===w?"now":"";
+    if(l)return `<li class="${st}" style="--seg:var(--c-lab)"><span class="bar"></span><a href="#${slug(w,l.i)}"><b>${esc(l.name)} adds</b> ${esc(shortFeed(w))}</a></li>`;
+    const ai=W[w].items.findIndex(x=>x[0]==="assign");
+    return `<li class="${st} due" style="--seg:var(--c-assign)"><span class="bar"></span><a href="#${slug(w,ai<0?0:ai)}"><b>${esc(m.a)} due</b> Pin-up, Thu ${esc(short(day(w)))}</a></li>`;};
+  const ai=W[A.wk].items.findIndex(x=>x[0]==="assign");
+  return `<div class="abar" aria-label="${esc(m.a)} progress">
+    <p class="abar-head"><a href="#${slug(A.wk,ai)}"><span class="k">${esc(m.a)}</span> ${esc(A.title)}</a><span class="cnt">${done} of ${labs} labs in</span></p>
+    <ol>${ws.map(seg).join("")}</ol>
+    <div class="deliv"><p>${esc(A.goal)}</p><p class="label">What your project should have at the pin-up</p><ul>${A.has.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>
+  </div>`;}
 
 function home(){
   let h=`${paceStrip()}<section class="intro"><p>The whole semester in one place. Each week has a short lecture, a lab you start in class, and a quiz over the weekend. Labs build toward each module's assignment, and every module becomes a chapter of your folio.</p>
   <ul class="legend">${["lecture","lab","quiz","assign"].map(k=>`<li><i class="dot" style="background:var(${KINDS[k].c})"></i>${KINDS[k].label}</li>`).join("")}</ul></section>`;
   for(const m of MODULES){
-    h+=`<section class="module" aria-labelledby="m-${m.weeks[0]}"><h2 id="m-${m.weeks[0]}"><span class="label">${esc(m.id)}</span>${esc(m.title)}</h2><div class="cards">${m.weeks.map(card).join("")}</div></section>`;
+    const row=m.a?m.weeks.slice(0,4):m.weeks,rest=m.a?m.weeks.slice(4):[];
+    h+=`<section class="module" aria-labelledby="m-${m.weeks[0]}"><h2 id="m-${m.weeks[0]}"><span class="label">${esc(m.id)}</span>${esc(m.title)}</h2><div class="${m.a?"mrow":"cards"}">${row.map(card).join("")}</div>${m.a?abar(m):""}${rest.length?`<div class="cards after">${rest.map(card).join("")}</div>`:""}</section>`;
   }
   return h;
 }
@@ -387,7 +439,8 @@ function itemSections(w,k,it){const L=it[3]||{};
   if(k==="quiz")return sec("How it works",`<p>The quiz opens Friday at 9 AM and is due Sunday at 11:59 PM. You get one attempt. Each question is set on the case building, has three options, and asks you how sure you are.</p><p>Where a question asks for a number, your numbers differ from your classmates'. After the due date the questions are checked and approved, and on Wednesday you see your score with a reason for every option.</p>`)+sec("Quiz",``);
   if(k==="crit")return sec("Format",PINUP(w));
   if(k==="assign"){if(/draft session/.test(it[2]))return sec("What happens",`<p>Studio time to pull your lab spreads into the assignment draft, with the TAs reading over your shoulder. Bring your spreads and your latest plans.</p>`);
-    return sec("Brief",`<p>Each assignment is written as a purpose, a task and the criteria it is scored on, with one example sheet and a single-point rubric with a “beyond” column.</p><p>You score your own sheets before submitting, and a peer scores them at the pin-up.</p><p class="note">Sheet and word limits: to be set by the instructor.</p>`)+sec("Built from","<p>"+esc({A01:"Labs 1, 2 and 3: climate, zoning and program, massing for sun and daylight.",A02:"Labs 4, 5 and 6: envelope, structure and MEP in section.",A03:"Labs 7 and 8: occupancy, egress and access, the plan check, and your details and mockup."}[it[2].slice(0,3)]||"")+"</p>");}
+    const AS=ASSIGN[it[2].slice(0,3)];
+    return (AS?sec("What your project should have",`<p>${esc(AS.goal)}</p><ul>${AS.has.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"")+sec("Brief",`<p>Each assignment is written as a purpose, a task and the criteria it is scored on, with one example sheet and a single-point rubric with a “beyond” column.</p><p>You score your own sheets before submitting, and a peer scores them at the pin-up.</p><p class="note">Sheet and word limits: to be set by the instructor.</p>`)+sec("Built from","<p>"+esc({A01:"Labs 1, 2 and 3: climate, zoning and program, massing for sun and daylight.",A02:"Labs 4, 5 and 6: envelope, structure and MEP in section.",A03:"Labs 7 and 8: occupancy, egress and access, the plan check, and your details and mockup."}[it[2].slice(0,3)]||"")+"</p>");}
   if(k==="folio")return sec("What to hand in",`<p>Each module is one chapter: its lab spreads, then its assignment, revised where the crits asked.</p>`)+sec("Scoring",`<p>You score your folio on the single-point rubric first. Two classmates score it next, and the instructor or TA confirms the score.</p>`);
   return "";
 }
@@ -640,6 +693,7 @@ function route(){const h=(location.hash||"#home").slice(1);let m;
   else if(m=h.match(/^check-([\w-]+)$/)){v.innerHTML=`<nav class="crumb" aria-label="Breadcrumb"><a href="#home">Course</a>/<a href="#admin">Admin</a>/<span>Question check</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Question check</span><h2 tabindex="-1">${esc(m[1])}</h2></div><div id="ck"></div>`;mountCheck(v.querySelector("#ck"),m[1]);}
   else if(m=h.match(/^quiz-([\w-]+)$/)){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>Quiz</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Quiz</span><h2 tabindex="-1">${esc(m[1]==="practice"?"Practice quiz":m[1])}</h2></div><div id="qz"></div>`;mountQuiz(v.querySelector("#qz"),m[1]);}
   else v.innerHTML=home();
+  document.querySelector(".wrap").classList.toggle("wide",v.querySelector(".mrow")!==null);
   window.scrollTo(0,0);
   if(FIRST){FIRST=false;return;}
   const hd=v.querySelector("h2[tabindex]");(hd||v).focus({preventScroll:true});
