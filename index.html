@@ -2,215 +2,406 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one reading column; course map is a vertical stack of modules > weeks > items, like a drawing set's sheet index */
+/* Layout: one reading column. Home = pacing strip, then one card per week, grouped by module, like a drawing set's sheet index. Nothing scrolls sideways. */
 :root{
-  --bg:#f7f8f6; --paper:#ffffff; --ink:#1b2320; --muted:#55615c; --line:#d6dcd8;
+  --bg:#f7f8f6; --paper:#ffffff; --ink:#1b2320; --muted:#4d5954; --line:#d6dcd8;
   --accent:#1f6f5c; --accent-soft:#e3f0eb;
-  --c-lecture:#3b5ba5; --c-lab:#1f6f5c; --c-quiz:#a5603b; --c-assign:#7a3fa0; --c-break:#7d8782;
-  --draft:#b07a12; --draft-soft:#fbf1dc;
+  --c-lecture:#3b5ba5; --c-lab:#1f6f5c; --c-quiz:#a5603b; --c-assign:#7a3fa0; --c-break:#6f7974;
+  --draft:#8a5d00; --draft-soft:#fbf1dc; --err:#b3261e;
   --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#141a18; --paper:#1c2421; --ink:#e7ece9; --muted:#a3afaa; --line:#33403b;
+  --bg:#141a18; --paper:#1c2421; --ink:#e7ece9; --muted:#a9b5b0; --line:#33403b;
   --accent:#5fc3a5; --accent-soft:#1f3a32;
   --c-lecture:#8fa8e8; --c-lab:#5fc3a5; --c-quiz:#e3a07a; --c-assign:#c49ae0; --c-break:#8c9792;
-  --draft:#e7b54a; --draft-soft:#3a2f17; color-scheme:dark}}
+  --draft:#e7b54a; --draft-soft:#3a2f17; --err:#ff8a80; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141a18; --paper:#1c2421; --ink:#e7ece9; --muted:#a3afaa; --line:#33403b;
+  --bg:#141a18; --paper:#1c2421; --ink:#e7ece9; --muted:#a9b5b0; --line:#33403b;
   --accent:#5fc3a5; --accent-soft:#1f3a32;
   --c-lecture:#8fa8e8; --c-lab:#5fc3a5; --c-quiz:#e3a07a; --c-assign:#c49ae0; --c-break:#8c9792;
-  --draft:#e7b54a; --draft-soft:#3a2f17; color-scheme:dark}
+  --draft:#e7b54a; --draft-soft:#3a2f17; --err:#ff8a80; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;margin:0}
-.wrap{max-width:880px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:20px}
-.brand{display:flex;flex-direction:column}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;margin:0}
+.skip{position:absolute;left:-9999px;top:8px;background:var(--paper);color:var(--ink);padding:8px 12px;border:2px solid var(--accent);z-index:20}
+.skip:focus{left:max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:900px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:24px}
+.brand{display:flex;flex-direction:column;gap:2px}
 .brand a{color:inherit;text-decoration:none}
-.code{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.04em}
+.label{font-size:14px;color:var(--muted);font-weight:500}
+.mono{font-family:var(--f-mono)}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
-h1{font-size:28px}
-h2{font-size:22px}
-h3{font-size:18px}
+h1{font-size:30px}
+h2{font-size:24px}
+h3{font-size:20px}
+a{color:var(--accent)}
 .key{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.key input{font:inherit;font-family:var(--f-mono);font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);width:150px}
-.key button,.btn{font:inherit;font-size:14px;font-weight:500;padding:6px 12px;border-radius:4px;border:1px solid var(--accent);background:var(--accent);color:var(--paper);cursor:pointer}
-.key button:disabled{opacity:.5;cursor:not-allowed}
-.key small{color:var(--muted);font-size:12px;flex-basis:100%}
+.key input{font:inherit;font-family:var(--f-mono);font-size:15px;padding:8px 10px;border:1px solid var(--muted);border-radius:4px;background:var(--paper);color:var(--ink);width:170px;min-height:40px}
+.key button,.btn{font:inherit;font-size:15px;font-weight:500;padding:8px 14px;min-height:40px;border-radius:4px;border:1px solid var(--accent);background:var(--accent);color:var(--paper);cursor:pointer}
+.key button:disabled{opacity:.55;cursor:not-allowed}
+.key small{color:var(--muted);font-size:14px;flex-basis:100%}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.intro{display:grid;gap:8px;margin-bottom:24px}
+h2:focus{outline:none}
+.intro{display:grid;gap:10px;margin-bottom:24px}
 .intro p{margin:0;color:var(--muted);max-width:65ch}
-.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--muted)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.dot{width:10px;height:10px;border-radius:2px;display:inline-block}
-.module{margin-top:28px}
-.module>h2{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding-bottom:6px;border-bottom:1px solid var(--line)}
-.module>h2 .code{font-size:13px}
-.week{display:grid;grid-template-columns:76px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
-.wk-no{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
-.wk-no b{display:block;font-family:var(--f-display);font-size:22px;color:var(--ink);font-weight:600}
-.wk-body{min-width:0;display:grid;gap:8px}
-.wk-head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
-.wk-head a{color:inherit;text-decoration:none}
-.wk-head a:hover h3{text-decoration:underline}
-.wk-date{font-size:13px;color:var(--muted);font-family:var(--f-mono)}
-.items{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;gap:6px;align-items:center;font-size:13px;padding:4px 10px 4px 8px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:3px;background:var(--paper);color:var(--ink);text-decoration:none}
-.chip:hover{border-color:var(--c)}
-.chip .st{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
-.chip.draft .st{color:var(--draft)}
-.chip.live .st{color:var(--accent)}
-.week.break .wk-body{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;color:var(--muted);margin:0;padding:0;list-style:none}
+.legend li{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
+/* pacing strip: last week faded, this week centered, next week darker */
+.pace{display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:10px;align-items:stretch;margin:0 0 28px;padding:0;list-style:none}
+.pace li{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:6px;border:1px solid var(--line);background:var(--paper);min-width:0}
+.pace a{color:inherit;text-decoration:none}
+.pace a:hover b{text-decoration:underline}
+.pace .when{font-size:14px;font-weight:500;color:var(--muted)}
+.pace b{font-family:var(--f-display);font-size:20px;line-height:1.2}
+.pace .sub{font-size:14px;color:var(--muted)}
+.pace .last{opacity:.55}
+.pace .now{border:2px solid var(--accent);background:var(--accent-soft)}
+.pace .now b{font-size:24px}
+.pace .next{border-color:var(--ink)}
+.pace .next .when{color:var(--ink)}
+/* week cards */
+.module{margin-top:32px}
+.module>h2{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.module>h2 .label{font-family:var(--f-body)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:12px}
+.card{display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:6px;min-width:0}
+.card.is-now{border:2px solid var(--accent)}
+.card.brk{background:transparent}
+.card-head{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;justify-content:space-between}
+.card h3 a{color:inherit;text-decoration:none}
+.card h3 a:hover{text-decoration:underline}
+.card p{margin:0}
+.badge{font-size:14px;font-weight:600;color:var(--accent)}
+.card ul{list-style:none;margin:0;padding:0;display:grid;gap:2px;border-top:1px solid var(--line);padding-top:8px}
+.card li a{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:baseline;padding:6px 0;min-height:32px;color:var(--ink);text-decoration:none}
+.card li a:hover .t{text-decoration:underline}
+.card li .k{font-size:14px;font-weight:600;color:var(--c)}
+.card li .t{min-width:0}
+.card li .d{font-size:14px;color:var(--muted);text-align:right}
+.card .more{font-size:14px;color:var(--muted)}
+@media (max-width:520px){.card li a{grid-template-columns:auto 1fr}.card li .d{grid-column:2;text-align:left}}
 /* item + week pages */
-.crumb{font-size:14px;margin-bottom:16px;display:flex;gap:6px;flex-wrap:wrap;color:var(--muted)}
-.crumb a{color:var(--accent)}
+.crumb{font-size:15px;margin-bottom:16px;display:flex;gap:6px;flex-wrap:wrap;color:var(--muted)}
 .page-head{display:grid;gap:6px;padding-bottom:14px;border-bottom:2px solid var(--c,var(--ink));margin-bottom:18px}
-.kind{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--c,var(--muted))}
-.status{display:inline-block;font-family:var(--f-mono);font-size:12px;padding:2px 8px;border-radius:3px;background:var(--line);color:var(--ink);width:max-content}
+.kind{font-size:15px;font-weight:600;color:var(--c,var(--muted))}
+.status{display:inline-block;font-size:14px;font-weight:500;padding:2px 8px;border-radius:3px;background:var(--line);color:var(--ink);width:max-content}
 .status.draft{background:var(--draft-soft);color:var(--draft)}
 .status.live{background:var(--accent-soft);color:var(--accent)}
-.dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 20px}
-.dates div{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
-.dates dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.dates dd{margin:0;font-family:var(--f-mono);font-size:14px}
-.sec{display:grid;gap:6px;padding:14px 0;border-top:1px solid var(--line)}
-.sec p{margin:0;max-width:65ch}
-.ph{color:var(--muted);font-style:italic}
+.dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:0 0 20px}
+.dates div{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--c,var(--line));border-radius:4px;padding:8px 10px}
+.dates dt{font-size:14px;color:var(--muted);font-weight:500}
+.dates dd{margin:0;font-size:16px}
+.lede{font-size:19px;line-height:1.55;max-width:65ch;margin:0 0 8px}
+.sec{display:grid;gap:8px;padding:16px 0;border-top:1px solid var(--line)}
+.sec p,.sec ul,.sec ol{margin:0;max-width:65ch}
+.sec ul,.sec ol{padding-left:22px}
+.note{color:var(--muted);font-size:15px}
 .tool{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:14px 16px;margin:6px 0 4px}
 .tool p{margin:0}
 .btn{text-decoration:none;display:inline-block}
-ul.plain{margin:0;padding-left:20px}
-.list{display:grid;gap:6px}
-.list a{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--c);background:var(--paper);border-radius:4px;color:var(--ink);text-decoration:none}
+.list{display:grid;gap:6px;margin:0 0 8px;padding:0;list-style:none}
+.list a{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:10px 12px;min-height:44px;border:1px solid var(--line);border-left:4px solid var(--c);background:var(--paper);border-radius:4px;color:var(--ink);text-decoration:none}
 .list a:hover{border-color:var(--c)}
-.list .st{margin-left:auto;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
-.who{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.list .st{margin-left:auto;font-size:14px;color:var(--muted)}
+.who{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:15px}
 .who b{font-family:var(--f-mono)}
-.who a,.linkbtn{color:var(--accent);background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline}
+.who a,.linkbtn{color:var(--accent);background:none;border:0;padding:4px 0;font:inherit;cursor:pointer;text-decoration:underline;min-height:24px}
 .panel{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:grid;gap:10px;margin:10px 0}
 .panel h3{margin:0}
-.panel label{display:grid;gap:4px;font-size:14px}
-.q{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
-.q:first-child{border-top:0}
-.q .prompt{font-weight:500}
-.q label{display:flex;gap:8px;align-items:center}
-.q input[type=text],.panel input[type=text],.panel select,.panel textarea{font:inherit;font-size:15px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink)}
-.panel textarea{width:100%;min-height:110px;font-family:var(--f-mono);font-size:13px}
-.score{font-family:var(--f-display);font-size:32px;font-weight:600}
-.msg{font-size:14px;color:var(--muted);margin:0}
-.err{color:#b3261e}
-table.t{border-collapse:collapse;width:100%;font-size:14px}
+.panel label{display:grid;gap:4px;font-size:15px}
+fieldset.q{display:grid;gap:6px;padding:12px 0;border:0;border-top:1px solid var(--line);margin:0}
+fieldset.q:first-child{border-top:0}
+.q legend{font-weight:500;padding:0;margin-bottom:6px;float:left;width:100%}
+.q label{display:flex;gap:10px;align-items:center;min-height:32px}
+.q input[type=radio],.q input[type=checkbox]{width:20px;height:20px;flex:none}
+.q input[type=text],.panel input[type=text],.panel select,.panel textarea{font:inherit;font-size:16px;padding:8px 10px;min-height:40px;border:1px solid var(--muted);border-radius:4px;background:var(--paper);color:var(--ink)}
+.panel textarea{width:100%;min-height:110px;font-family:var(--f-mono);font-size:14px}
+.score{font-family:var(--f-display);font-size:34px;font-weight:600}
+.msg{font-size:15px;color:var(--muted);margin:0}
+.err{color:var(--err)}
+.tw{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:15px}
 table.t th,table.t td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
 table.t td.mono{font-family:var(--f-mono)}
 .ok{color:var(--accent)}
-footer{margin-top:40px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
-@media (max-width:520px){.week{grid-template-columns:1fr;gap:4px}.wk-no b{display:inline;margin-right:8px}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.sure{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin-top:4px;padding-top:6px;border-top:1px dashed var(--line)}
+.review{display:grid;gap:12px;padding-left:0;list-style:none;margin:12px 0 0}
+.rv p{margin:0 0 6px}
+.opts{list-style:none;padding:0;margin:0 0 6px;display:grid;gap:4px}
+.opts li{display:grid;gap:2px;padding:8px 10px;border:1px solid var(--line);border-radius:4px}
+.opts li.is-right{border-color:var(--accent);background:var(--accent-soft)}
+.opts li.is-yours{border-width:2px}
+.opts .why{font-size:15px;color:var(--muted)}
+.check{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.check>li p{margin:0}
+.check>li.flag{border-left:4px solid var(--err)}
+.rg{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.rgb{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.rgb label{display:grid;gap:4px;font-size:15px}
+.rg select,.rg input{font:inherit;font-size:16px;padding:8px 10px;min-height:40px;border:1px solid var(--muted);border-radius:4px;background:var(--paper);color:var(--ink)}
+details summary{cursor:pointer;min-height:24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+footer{margin-top:40px;font-size:15px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+footer p{margin:0 0 6px;max-width:70ch}
+@media (max-width:640px){.pace{grid-template-columns:1fr}.pace .now{order:-1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 
+<a class="skip" href="#view">Skip to content</a>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><a href="#home"><span class="code">ARCH 6171 · SPRING 2027 · CU DENVER</span><h1>Integration Seminar</h1></a><a class="code" href="inspo/" style="display:inline-block;margin-top:6px">INSPO BOARD →</a></div>
+    <div class="brand"><a href="#home"><span class="label">ARCH 6171 · Spring 2027 · CU Denver</span><h1>Integration Seminar</h1></a><a class="label" href="inspo/">Inspiration board</a></div>
     <form class="key" id="keyForm">
-      <label for="studentKey" class="code">ACCESS KEY</label>
-      <input id="studentKey" placeholder="e.g. TR4K2-9XQPM" autocomplete="off" disabled>
+      <label for="studentKey" class="label">Access key</label>
+      <input id="studentKey" placeholder="e.g. TR4K2-9XQPM" autocomplete="off" disabled aria-describedby="keyNote">
       <button type="submit" disabled>Open</button>
-      <small id="keyNote">Keys turn on once the course database is set up.</small>
+      <small id="keyNote" aria-live="polite">Keys turn on once the course database is set up.</small>
     </form>
     <div class="who" id="who" hidden></div>
   </header>
-  <main id="view"></main>
-  <footer>Thursdays 9:30 AM to 12:15 PM. Quizzes due Sundays 11:59 PM, labs due Tuesdays 11:59 PM. Preview build: pages marked “Coming soon” are placeholders.</footer>
+  <main id="view" tabindex="-1"></main>
+  <footer><p>Class meets Thursdays, 9:30 AM to 12:15 PM. Quizzes open Friday at 9 AM and are due Sunday at 11:59 PM. Labs are due Tuesday at 11:59 PM, except in the week before a crit, when they are due Sunday so crit week stays clear.</p><p>Pages marked “Coming soon” are still being written.</p><p class="label" id="lastUpdate">Last update: Nov 18, 2026, 12:25 AM</p></footer>
 </div>
 
 <script src="config.js"></script>
 <script>
-const KINDS={lecture:{label:"Lecture",c:"--c-lecture"},lab:{label:"Lab",c:"--c-lab"},quiz:{label:"Quiz",c:"--c-quiz"},assign:{label:"Assignment",c:"--c-assign"},crit:{label:"Crit day",c:"--c-assign"},folio:{label:"Folio",c:"--c-assign"}};
+const KINDS={lecture:{label:"Lecture",c:"--c-lecture"},class:{label:"In class",c:"--c-lecture"},lab:{label:"Lab",c:"--c-lab"},quiz:{label:"Quiz",c:"--c-quiz"},assign:{label:"Assignment",c:"--c-assign"},crit:{label:"Crit day",c:"--c-assign"},folio:{label:"Folio",c:"--c-assign"}};
 const START=new Date(2027,0,21); // Thursday of week 1
 const day=(w,off=0)=>{const d=new Date(START);d.setDate(d.getDate()+(w-1)*7+off);return d};
 const fmt=d=>d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+const short=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+const pad=w=>String(w).padStart(2,"0");
 
 const MODULES=[
-  {id:"0",title:"Getting started",weeks:[1]},
-  {id:"M1",title:"Module 1 · Site, climate and code",weeks:[2,3,4,5]},
-  {id:"M2",title:"Module 2 · Form, energy, structure, MEP",weeks:[6,7,8,9,10]},
-  {id:"M3",title:"Module 3 · Egress, access and details",weeks:[11,12,13,14]},
-  {id:"F",title:"Folio and finals",weeks:[15,16,17]},
+  {id:"Start",title:"Getting started",weeks:[1]},
+  {id:"Module 1",title:"Site, climate and massing",weeks:[2,3,4,5]},
+  {id:"Module 2",title:"Energy, structure and systems",weeks:[6,7,8,9,10]},
+  {id:"Module 3",title:"Occupancy, egress, access and details",weeks:[11,12,13,14]},
+  {id:"Finish",title:"Folio and finals",weeks:[15,16,17]},
 ];
 const S={soon:"Coming soon",draft:"Draft",live:"Live"};
-// week data: topic, items
+const SUNDUE=new Set([4,8,13]); // week before a crit: lab due Sunday
+/* Week data. intro = two sentences for the home card. summary = the week page's opening, in the course's own voice.
+   Lab fields come from the Course Map lab pages (faculty review, Nov 18). */
 const W={
-  1:{topic:"Introduction and the case building",items:[["lecture","soon","Course intro: labs, assignments, folio"]]},
-  2:{topic:"Climate and site",items:[["lecture","soon","Reading a climate"],["lab","draft","Lab 1 · Climate Reader: Denver",{tool:true}],["quiz","draft","Quiz 1 · Trial run on your assigned city",{tool:true}]]},
-  3:{topic:"Zoning, program and occupancy",items:[["lecture","soon","Zoning and program"],["lab","soon","Lab 2 · Zoning and program"],["quiz","soon","Quiz 2"]]},
-  4:{topic:"Code path",items:[["lecture","soon","Construction type, height and area"],["lab","soon","Lab 3 · Code path"],["quiz","soon","Quiz 3"],["assign","soon","A01 · draft session"]]},
-  5:{topic:"Crit 1",crit:"A01",items:[["crit","soon","A01 crit and peer review"],["assign","soon","A01 · Site, climate and code"]]},
-  6:{topic:"Form and energy",items:[["lecture","soon","Form, energy and carbon"],["lab","soon","Lab 4 · Form and energy"],["quiz","soon","Quiz 4"]]},
-  7:{topic:"Structure",items:[["lecture","soon","Structural systems"],["lab","soon","Lab 5 · Structure"],["quiz","soon","Quiz 5"]]},
-  8:{topic:"Mechanical, electrical, plumbing",items:[["lecture","soon","MEP systems"],["lab","soon","Lab 6 · MEP"],["quiz","soon","Quiz 6"],["assign","soon","A02 · draft session"]]},
-  9:{topic:"Crit 2",crit:"A02",items:[["crit","soon","A02 crit with engineer"],["assign","soon","A02 · Form, structure and systems"]]},
-  10:{topic:"Spring break",brk:true,items:[]},
-  11:{topic:"Egress and accessibility",items:[["lecture","soon","Egress and accessible routes"],["lab","soon","Lab 7 · Egress and access"],["quiz","soon","Quiz 7"]]},
-  12:{topic:"Reading details",items:[["lecture","soon","Reading a wall section"],["lab","soon","Lab 8 · Reading details"],["quiz","soon","Quiz 8"]]},
-  13:{topic:"Drafting details",items:[["lecture","soon","Drafting details"],["lab","soon","Lab 9 · Drafting details"],["quiz","soon","Quiz 9"],["assign","soon","A03 · draft session"]]},
-  14:{topic:"Crit 3",crit:"A03",items:[["crit","soon","A03 crit and peer review"],["assign","soon","A03 · Egress, access and details"]]},
-  15:{topic:"Folio pin-up",items:[["folio","soon","Folio pin-up review"]]},
-  16:{topic:"Studio review week",brk:true,items:[]},
-  17:{topic:"Finals",items:[["folio","soon","Final folio"]]},
+  1:{topic:"Course intro: draw the invisible",
+    intro:"Every building runs on systems you can't see: sun, heat, load, air and people moving through it. This course draws them, one lab at a time, on your own project.",
+    summary:["The seminar runs beside your studio. Each week takes one hidden system, shows you how to see it, and asks you to draw it on the project you are designing. By the end of the term those drawings become the chapters of your folio.","This first class sets up how the weeks work: a short talk, a lab started in class and finished at home, a quiz over the weekend, and a crit at the end of each module. Then the class scores one sample spread together on the open-move rubric, so everyone knows what “meets” and “beyond” look like before the first lab is due."],
+    items:[["lecture","soon","Course intro: draw the invisible"],["class","soon","Calibration: score a sample spread together"]]},
+  2:{topic:"Climate and site",
+    intro:"A climate is a year of hours, and most of them are not comfortable. This week you read Denver's climate and pick the passive strategies that win back the most hours.",
+    summary:["Before a site has a building on it, it has weather: sun, temperature, humidity and wind, hour by hour, all year. Reading that record well tells you which design moves will do the most work for free, and which ones a mechanical system will have to do instead.","In the lab you read Denver in the Climate Reader, guess which strategies matter most, then check your guess against the hours. The weekend quiz is a trial run on the city you've been assigned."],
+    items:[["lecture","soon","Reading a climate"],["lab","draft","Lab 1 · Climate Reader: Denver",{tool:true,
+      why:"Comfort is a count of hours. Seeing which months and hours fall outside it shows you which strategies are worth designing for, before any form exists.",
+      concept:"The psychrometric chart plots every hour of the year by temperature and humidity. The comfort zone is one region on it; each passive strategy stretches that region, and the share of hours it captures is how much that strategy can do.",
+      example:"The class reads Denver's chart together: cold, dry winters, sunny days and cool nights. You guess the top three strategies, then the reader ranks them by hours gained and you compare.",
+      learn:"Read the chart, make your guess, reveal the ranking, and pick your strategies.",
+      build:"Your climate kit: the chart with your strategies marked, the sun chart for the site, and one line on why each strategy suits it.",
+      feeds:"A01: the climate strategies your massing has to answer."}],["quiz","draft","Quiz 1 · Trial run on your assigned city",{tool:true}]]},
+  3:{topic:"Zoning and program",
+    intro:"The zoning code draws an invisible box over every lot before design starts. This week you find that box for your site and fit your program inside it.",
+    summary:["Zoning sets the largest building a lot can hold: how far it must step back from each edge, how tall it can rise, and how much floor area it may have in total. Program is what the client needs inside, and it always takes more gross area than the room list suggests, because walls, stairs and corridors take their share.","You'll interview a classmate as your client, write a room schedule, and test three massings inside your site's envelope."],
+    items:[["lecture","soon","Zoning and program"],["lab","soon","Lab 2 · Zoning and program",{
+      why:"The zoning code draws an invisible box over every lot before any design starts. Once you see the box, you stop drawing buildings that can't be built, and the program sorts itself inside it.",
+      concept:"The envelope is the lot minus setbacks, capped by height and floor area ratio (FAR). Program fits the envelope as gross area, not net: walls, circulation and services take a share.",
+      example:"A 50 x 125 ft lot is 6,250 sf. At FAR 2.0 the most floor area allowed is 12,500 sf. With 5 ft side setbacks and a 15 ft front setback, the footprint can be at most 40 x 110 ft. The class works this once on a made-up lot; you repeat it on your own site with Denver's zoning.",
+      learn:"Interview a classmate as your client.",
+      build:"Zoning envelope, room schedule and adjacency diagram; three massings inside the envelope.",
+      feeds:"A01 envelope and program. The room schedule carries into Lab 3 and Module 3."}],["quiz","soon","Quiz 2 · Zoning envelope and program"]]},
+  4:{topic:"Massing for sun and daylight",
+    intro:"Sun and daylight are free, but only for a massing shaped to catch them. This week you test three massings against the sun before any plan is drawn.",
+    summary:["The sun's path over your site changes with the season, and so does the shadow your neighbors cast on it. Daylight from a side window reaches only so far into a room. Both facts favor some building shapes over others, and the time to act on them is now, while moving a wing costs nothing.","In class you'll set your massing model under a lamp at three noon sun angles and photograph what goes dark. At home you'll compare three massings and choose one. Your lab is due Sunday so crit week stays clear."],
+    items:[["lecture","soon","Sun angles and daylight depth"],["lab","soon","Lab 3 · Massing for sun and daylight",{
+      why:"Sun and daylight are free, but only for the massing that was shaped to catch them. Moving a wing now costs nothing; moving it after the plans are drawn costs the project.",
+      concept:"The sun's noon altitude is 90 minus latitude, plus or minus the sun's declination (up to 23.4 degrees at the solstices). Daylight reaches about 1.5 to 2 times the window head height into a room from a side window.",
+      example:"Denver sits near 39.7 degrees N. Noon sun is about 50 degrees at the equinoxes, 74 degrees in late June and 27 degrees in late December. A south-facing bar with 10 ft window heads gets useful daylight 15 to 20 ft deep, so a 40 ft deep plan leaves a dark middle. The class checks a neighbor's shadow at 27 degrees, then you test three massings of your own.",
+      learn:"Shadow study: set your massing model under a lamp at the three noon angles and photograph what goes dark.",
+      build:"Three massings compared on solar access and daylight depth; the sun path over the site; your chosen massing with a one-line reason.",
+      read:"Lechner, chapters 8 and 12; Green Studio Handbook, sidelighting.",
+      feeds:"A01: your massing's response to sun and daylight. The chosen massing carries into Lab 4."}],["quiz","soon","Quiz 3 · Massing for sun and daylight"],["assign","soon","A01 · draft session"]]},
+  5:{topic:"A01 crit",crit:"A01",
+    intro:"No lab or quiz this week: the whole class is for the first crit. You pin up A01 in groups of six and each critic writes a note before speaking.",
+    summary:["Crit week closes Module 1. Each group of six pins up, one critic leads, and everyone works from a pin-up card with three prompts. Critics write a short note before they speak, so the quieter reviews get heard too.","Peers score your spread on the A01 rubric, and the TA collects the cards. You'll use them to revise A01 before the final is due."],
+    items:[["crit","soon","A01 pin-up and peer review"],["assign","soon","A01 · Site, climate and massing"]]},
+  6:{topic:"Energy and envelope",
+    intro:"Heat leaks through every wall, window and crack, and you can't see it. This week you turn that leak into numbers and find which choice moves the energy bill most.",
+    summary:["The envelope is the line between inside and outside, and heat crosses it all year. How much depends on how well each part resists heat, how much of the facade is glass, and how cold or hot the climate runs over a year.","You'll work out the U-values of your own wall and window, test three window-to-wall ratios, and estimate a yearly energy use for one room."],
+    items:[["lecture","soon","Envelope, heat loss and energy use"],["lab","soon","Lab 4 · Energy and envelope",{
+      why:"Heat leaks through every wall, window and crack, and you can't see it. Drawing the leak as a number per square foot shows which choice, glass or insulation or air sealing, actually moves the energy bill.",
+      concept:"U = 1 / total R. Heat flow Q = U x A x temperature difference. Window-to-wall ratio (WWR) sets how much of the facade is the weak layer. Degree days scale the hourly loss to a year; EUI is that year per square foot.",
+      example:"A 100 sf wall at R-20 (U = 0.05) with a 40 degree F difference loses 200 Btu/h. Swap 40 sf of it for double glazing at about U = 0.5 and the window alone loses 800 Btu/h, four times the whole wall. You run the same math on your own facade at three WWRs.",
+      learn:"Section sketch of your own window with a sun angle.",
+      build:"U-values for your wall and window; heat loss at three WWRs and your choice; a degree-day estimate and EUI; three facades for one room.",
+      read:"Lechner, chapters 3 and 13; MEEB, chapter 7, and chapter 9 for infiltration.",
+      feeds:"A02 section: envelope and passive strategies. Your wall's U-value is checked again in the detail lab."}],["quiz","soon","Quiz 4 · Energy and envelope"]]},
+  7:{topic:"Structure",
+    intro:"Load travels down through a building whether anyone draws it or not. This week you size a grid on your own span and draw it at true depth.",
+    summary:["Every floor carries its weight and its people down through joists, beams and columns to the ground, and wind and earthquakes push sideways on top of that. The longer the span, the deeper the members, and that depth decides ceiling heights and where ducts can run.","Each of you works on your own span and loads, so no two answers match. In class you'll lay a grid over your plan with the TAs."],
+    items:[["lecture","soon","Load paths and spans"],["lab","soon","Lab 5 · Structure on your own span",{
+      why:"Load travels down through the building whether we draw it or not. A grid sized on your own span decides ceiling heights, duct routes and how deep the floor really is.",
+      concept:"Load path: slab to joist to beam to column to foundation. Member depth grows with span; rule-of-thumb span-to-depth ratios come from the span chart in the reading. Lateral load needs its own path: frames, braces or shear walls.",
+      example:"The class takes one bay of a sample plan, reads its span, picks a depth from the span chart for wood and for steel, and draws both in section at true depth. You then do the same with your own span and loads.",
+      learn:"Lay a grid over your own plan with the TAs.",
+      build:"A grid on your own plan; members sized for your span and loads; the lateral system; foundations in section at true depth; two systems compared on depth and carbon.",
+      feeds:"A02 section: structure at true depth. The grid carries into Lab 6."}],["quiz","soon","Quiz 5 · Structure"]]},
+  8:{topic:"MEP in section",
+    intro:"Air, water and power share the same few feet above the ceiling as the structure. This week you draw them together and find the clashes on paper.",
+    summary:["Mechanical, electrical and plumbing systems (MEP) need room to run, and the biggest of them, the main supply duct, competes with the beams for the space above the ceiling. Where they meet, something has to give: the ceiling drops, the duct reroutes, or the beam gets a hole.","You'll zone your plan, pick a system and draw one main duct run in section under last week's beams. Your lab is due Sunday so crit week stays clear."],
+    items:[["lecture","soon","Zones, systems and the plenum"],["lab","soon","Lab 6 · MEP in section",{
+      why:"Air, water and power run through the same few feet above the ceiling as the structure. Drawing them together in section is where clashes get found on paper instead of on site.",
+      concept:"Thermal zones group spaces with the same load and schedule. Each zone needs supply and return; the main duct is the largest thing above the ceiling, so it sets the plenum depth together with the beam.",
+      example:"The class zones a sample plan by orientation and use, picks a system, then draws one main duct run in section under last week's beams. Where duct and beam collide, the class tries three fixes: raise the ceiling, reroute, or pass through a beam penetration. You repeat this on your own section.",
+      learn:"Thermal zones and shafts over last week's grid.",
+      build:"Zones, system, major spaces, and the main duct run in section coordinated with structure; a clash hunt.",
+      read:"MEEB, HVAC systems chapters.",
+      feeds:"A02 section: distribution drawn with structure. Plenum depth carries into the A03 wall section."}],["quiz","soon","Quiz 6 · MEP in section"],["assign","soon","A02 · draft session"]]},
+  9:{topic:"A02 crit",crit:"A02",
+    intro:"No lab or quiz this week: the class is for the second crit, with an engineer in the room. Groups are reshuffled so you hear new voices.",
+    summary:["Crit week closes Module 2. The pin-up runs as in week 5, in new groups of six, scored on the A02 rubric. An engineer joins to read your sections for structure and systems.","The A02 final is due after spring break."],
+    items:[["crit","soon","A02 pin-up with an engineer"],["assign","soon","A02 · Form, structure and systems"]]},
+  10:{topic:"Spring break",brk:true,intro:"No class this week.",summary:["No class this week."],items:[]},
+  11:{topic:"Occupancy, egress and access",
+    intro:"In a fire, people move along paths nobody drew. This week you draw them on your own plan and run the plan check a building official would.",
+    summary:["The number of people a space can hold sets how many exits it needs, how wide they must be, and how many toilets it needs too. The code limits how far anyone walks to reach safety, and it asks for an accessible route through the building. All of it is taught once, here, and carried into A03.","In class you'll run a fire drill on paper: trace the exits on your own plan with the TAs and time the longest walk."],
+    items:[["lecture","soon","Occupancy, exits and accessible routes"],["lab","soon","Lab 7 · Occupancy, egress and access",{
+      why:"In a fire, people move along paths nobody drew. Occupant load, exits and travel distance make that movement visible, and the plan check is what a building official will do to your drawings.",
+      concept:"Occupant load = area / load factor from the code table. The load sets the number of exits and their width; travel distance and common path limit how far anyone walks to safety. The same load sets plumbing fixture counts.",
+      example:"A 6,000 sf business floor at 150 sf gross per occupant holds 40 people. The class reads the exit count and minimum width from the table, then traces the longest travel path on a sample plan and checks it against the limit. You repeat it on your own plan and fill in the plan-check list.",
+      learn:"Fire drill on paper: trace exits on your own plan and time the longest walk.",
+      build:"Occupancy and loads; an egress plan with exits, widths and travel distances; fire ratings and separations; fixture count; an accessible route and one toilet room; the plan-check list.",
+      read:"Building Codes Illustrated, chapters 3 to 7 and 10 to 11.",
+      feeds:"A03 plans and the A03 plan check."}],["quiz","soon","Quiz 7 · Occupancy, egress and access"]]},
+  12:{topic:"Detail lab, part 1: control layers",
+    intro:"Every wall has to stop water, air, vapor and heat, without a break. This week you trace those four layers in color through real details.",
+    summary:["A wall section looks like a stack of materials, but it is doing four jobs at once. Each job needs a layer that runs unbroken around every corner, window and roof edge, and the details are where those layers most often break.","This is a two-week lab. In part 1 you trace all four layers through details from the case building and through your own wall. Your traces are due Thursday of week 13 for a partner swap."],
+    items:[["lecture","soon","Control layers"],["lab","soon","Lab 8 · Detail lab, part 1: control layers",{
+      why:"Every wall has to stop water, air, vapor and heat, and each of those layers must run unbroken around corners, windows and roofs. Tracing them in color shows where a real building keeps them going, and where it doesn't.",
+      concept:"Four control layers, in order of importance: water, air, vapor, thermal. Each is a continuous line in section; a detail works if you can trace each line without lifting the pen.",
+      example:"The class traces all four layers in four colors through one parapet from the case building drawing set, marking each break. You then trace your own pick from the set and your project's wall, and check its U-value against Lab 4.",
+      learn:"Mark up a detail from the case building drawing set.",
+      build:"Pick the wall assembly for your project, trace its control layers, and check its U-value against Lab 4.",
+      read:"Fundamentals of Building Construction, chapter 16.",
+      feeds:"A03 wall section. Your traces carry into part 2."}],["quiz","soon","Quiz 8 · Control layers"]]},
+  13:{topic:"Detail lab, part 2: draft and mockup",
+    intro:"A detail is a promise that the four layers survive the hardest corner of the building. This week you draft your own and build one as a mockup.",
+    summary:["Transitions are where layers break: wall to roof, wall to window, wall to ground. A good detail draws the layers first and the parts that hold them second, and it is keyed back to the wall section so a builder can find it.","Class starts with a partner swap of your part 1 traces, then a pour test: water from a cup down a paper mockup to see where it goes. Parts 1 and 2 are due Sunday so crit week stays clear."],
+    items:[["lecture","soon","Transitions"],["lab","soon","Lab 8 · Detail lab, part 2: draft and mockup",{
+      why:"A detail is a promise that the four layers from part 1 survive the hardest corner of the building. Building it as a small mockup proves the promise with your hands.",
+      concept:"Transitions break layers: wall to roof, wall to window, wall to ground. Draw the layers first, then the parts that hold them. Key each detail to the wall section.",
+      example:"The class drafts one window head together, layer by layer, then runs the pour test. You draft two or three transitions of your own wall and build a mockup of one.",
+      learn:"Partner swap of part 1 traces; sketch one transition of your wall with the TAs and run the pour test.",
+      build:"Two or three details at transitions, layers continuous, keyed to the wall section; a mockup of one.",
+      read:"Fundamentals of Building Construction, chapter 16.",
+      feeds:"A03 details and mockup."}],["quiz","soon","Quiz 9 · Transitions"],["assign","soon","A03 · draft session"]]},
+  14:{topic:"A03 crit",crit:"A03",
+    intro:"No lab or quiz this week: the class is for the third crit. Your A03 is read as a building official would, with the plan check and your mockup on the table.",
+    summary:["Crit week closes Module 3. The pin-up runs as before, in groups of six, scored on the A03 rubric, which now includes the plan check and the mockup.","The A03 final is due the Tuesday after crit."],
+    items:[["crit","soon","A03 pin-up and plan check"],["assign","soon","A03 · Egress, access and details"]]},
+  15:{topic:"Folio pin-up",
+    intro:"Your labs and assignments come together as one folio, a chapter per module. You score it yourself, two classmates score it, and then it's confirmed.",
+    summary:["The folio is the semester's drawings collected: each module's lab spreads and its assignment, revised where the crits asked. This week you pin it up and score it three ways.","You score your own folio first, two classmates score it next, and the instructor or TA confirms the score. Where the scores differ, the conversation is the point."],
+    items:[["folio","soon","Folio pin-up with self and peer scoring"]]},
+  16:{topic:"Studio review week",brk:true,intro:"No seminar this week, so studio reviews have the room.",summary:["No seminar this week, so studio reviews have the room."],items:[]},
+  17:{topic:"Finals",intro:"Hand in the final folio during finals week.",summary:["Hand in your final folio during finals week, with the changes from the pin-up made."],items:[["folio","soon","Final folio"]]},
 };
 const slug=(w,i)=>`wk-${w}-${i}`;
 function dueFor(w,kind){
-  const r={class:fmt(day(w))};
   if(w===17) return {window:"May 10 to May 15"};
-  if(kind==="quiz") r.due=fmt(day(w,3))+", 11:59 PM";
-  if(kind==="lab"){r.due=fmt(day(w,5))+", 11:59 PM";r.peer="By class "+fmt(day(w,7));}
-  if(kind==="crit"){r.draft=fmt(day(w,-2))+", 11:59 PM";r.peer="Before class "+fmt(day(w));r.final=w===9?"After spring break (TBD)":fmt(day(w,5))+", 11:59 PM";}
+  const r={class:fmt(day(w))};
+  if(kind==="quiz"){r.open=fmt(day(w,1))+", 9 AM";r.due=fmt(day(w,3))+", 11:59 PM";r.results="From "+fmt(day(w,6))+", after review";}
+  if(kind==="lab"){
+    if(w===12){r.due=fmt(day(w,7))+" in class (traces, for the partner swap)";r.final="Parts 1 and 2: "+fmt(day(w,10))+", 11:59 PM";}
+    else r.due=SUNDUE.has(w)?fmt(day(w,3))+", 11:59 PM":fmt(day(w,5))+", 11:59 PM";
+    r.peer=SUNDUE.has(w)||w===12?"At crit, "+fmt(day(w,w===12?14:7)):"By class, "+fmt(day(w,7));}
+  if(kind==="crit"){r.draft=fmt(day(w,-2))+", 11:59 PM";r.peer="Before class, "+fmt(day(w));r.final=w===9?"After spring break":fmt(day(w,5))+", 11:59 PM";}
   return r;
 }
-const LBL={class:"Class",due:"Due",peer:"Peer reviews",draft:"Draft due",final:"Final due",window:"Finals week"};
+const shortDue=(w,k)=>{if(w===17)return "May 10 to 15";
+  if(k==="quiz")return "Due Sun "+short(day(w,3));
+  if(k==="lab")return w===12?"Traces Thu "+short(day(w,7)):"Due "+(SUNDUE.has(w)?"Sun "+short(day(w,3)):"Tue "+short(day(w,5)));
+  if(k==="crit")return "Draft Tue "+short(day(w,-2));
+  return "Thu "+short(day(w));};
+const LBL={class:"Class",open:"Opens",due:"Due",results:"Results and answers",peer:"Peer reviews",draft:"Draft due",final:"Final due",window:"Finals week"};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function chip(w,i,it){const[k,s,t]=it;const K=KINDS[k];return `<a class="chip ${s}" style="--c:var(${K.c})" href="#${slug(w,i)}">${esc(K.label)}<span class="st">${S[s]}</span></a>`}
+/* where are we in the term? 0 = before week 1 */
+function curWeek(){const mon=day(1,-3);const t=new Date();if(t<mon)return 0;return Math.min(17,Math.floor((t-mon)/(7*864e5))+1);}
+
+function paceStrip(){const c=curWeek();const now=Math.max(1,c),last=now-1,next=Math.min(17,now+1);
+  const tile=(w,cls,when)=>{if(w<1)return `<li class="${cls}"><span class="when">${when}</span><b>Before term</b><span class="sub">Classes start Thu ${short(START)}</span></li>`;
+    const d=W[w];return `<li class="${cls}"><a href="#wk-${w}"><span class="when">${when}</span><b>Week ${pad(w)} · ${esc(d.topic)}</b></a><span class="sub">${w===17?"May 10 to 15":"Class Thu "+short(day(w))}</span></li>`;};
+  return `<ol class="pace" aria-label="Where we are in the term">${tile(last,"last","Last week")}${tile(now,"now",c===0?"First week":"This week")}${now<17?tile(next,"next",`Week ${pad(next)} next`):""}</ol>`;}
+
+function card(w){const d=W[w],c=curWeek();const isNow=w===Math.max(1,c);
+  const its=d.items.slice(0,3),extra=d.items.length-its.length;
+  return `<article class="card${isNow?" is-now":""}${d.brk?" brk":""}" aria-labelledby="h-wk-${w}">
+    <div class="card-head"><span class="label">Week ${pad(w)} · ${w===17?"May 10 to 15":"Thu "+short(day(w))}</span>${isNow?`<span class="badge">${c===0?"First up":"This week"}</span>`:""}</div>
+    <h3 id="h-wk-${w}">${d.brk?esc(d.topic):`<a href="#wk-${w}">${esc(d.topic)}</a>`}</h3>
+    <p>${esc(d.intro)}</p>
+    ${its.length?`<ul>${its.map((it,i)=>{const K=KINDS[it[0]];return `<li><a href="#${slug(w,i)}" style="--c:var(${K.c})"><span class="k">${K.label}</span><span class="t">${esc(it[2].replace(/^(Lab|Quiz) \d+ · /,""))}</span><span class="d">${esc(shortDue(w,it[0]))}</span></a></li>`}).join("")}</ul>`:""}
+    ${extra>0?`<a class="more" href="#wk-${w}">and ${extra} more on the week page</a>`:""}
+  </article>`;}
 
 function home(){
-  let h=`<section class="intro"><p>The whole semester in one place. Each week has a short lecture, a lab you start in class, and a quiz. Labs build toward each module's assignment, and every module becomes a chapter of your folio.</p>
-  <div class="legend">${["lecture","lab","quiz","assign"].map(k=>`<span><i class="dot" style="background:var(${KINDS[k].c})"></i>${KINDS[k].label}</span>`).join("")}<span>Status: <b>Live</b> · <b>Draft</b> · <b>Coming soon</b></span></div></section>`;
+  let h=`${paceStrip()}<section class="intro"><p>The whole semester in one place. Each week has a short lecture, a lab you start in class, and a quiz over the weekend. Labs build toward each module's assignment, and every module becomes a chapter of your folio.</p>
+  <ul class="legend">${["lecture","lab","quiz","assign"].map(k=>`<li><i class="dot" style="background:var(${KINDS[k].c})"></i>${KINDS[k].label}</li>`).join("")}</ul></section>`;
   for(const m of MODULES){
-    h+=`<section class="module"><h2><span class="code">${m.id}</span>${esc(m.title)}</h2>`;
-    for(const w of m.weeks){const d=W[w];
-      h+=`<div class="week${d.brk?" break":""}"><div class="wk-no">WEEK<b>${String(w).padStart(2,"0")}</b></div><div class="wk-body">
-      <div class="wk-head"><a href="#wk-${w}"><h3>${esc(d.topic)}</h3></a><span class="wk-date">${w===17?"May 10 to 15":"Thu "+fmt(day(w)).replace(/^\w+, /,"")}</span></div>
-      ${d.items.length?`<div class="items">${d.items.map((it,i)=>chip(w,i,it)).join("")}</div>`:`<div class="wk-date">No class</div>`}</div></div>`;}
-    h+=`</section>`;
+    h+=`<section class="module" aria-labelledby="m-${m.weeks[0]}"><h2 id="m-${m.weeks[0]}"><span class="label">${esc(m.id)}</span>${esc(m.title)}</h2><div class="cards">${m.weeks.map(card).join("")}</div></section>`;
   }
   return h;
 }
 function weekPage(w){const d=W[w];if(!d)return home();
-  return `<nav class="crumb"><a href="#home">Course</a>/<span>Week ${w}</span></nav>
-  <div class="page-head"><span class="kind">Week ${String(w).padStart(2,"0")}</span><h2>${esc(d.topic)}</h2><span class="wk-date">${w===17?"Finals week":"Class "+fmt(day(w))}</span></div>
-  ${d.items.length?`<div class="list">${d.items.map((it,i)=>`<a href="#${slug(w,i)}" style="--c:var(${KINDS[it[0]].c})"><b>${KINDS[it[0]].label}</b> ${esc(it[2])}<span class="st">${S[it[1]]}</span></a>`).join("")}</div>`:`<p class="ph">No class this week.</p>`}
-  <div class="sec"><h3>Week summary</h3><p class="ph">Introduction and timeline for this week go here.</p></div>`;
+  const lab=d.items.find(it=>it[0]==="lab");const L=lab&&lab[3];
+  return `<nav class="crumb" aria-label="Breadcrumb"><a href="#home">Course</a>/<span>Week ${w}</span></nav>
+  <div class="page-head"><span class="kind">Week ${pad(w)}</span><h2 tabindex="-1">${esc(d.topic)}</h2><span class="label">${w===17?"Finals week":"Class "+fmt(day(w))}</span></div>
+  ${d.summary.map((p,i)=>`<p class="${i?"":"lede"}" style="max-width:65ch">${esc(p)}</p>`).join("")}
+  ${d.items.length?`<div class="sec"><h3>This week</h3><ul class="list">${d.items.map((it,i)=>`<li><a href="#${slug(w,i)}" style="--c:var(${KINDS[it[0]].c})"><b>${KINDS[it[0]].label}</b> ${esc(it[2])}<span class="st">${esc(shortDue(w,it[0]))} · ${S[it[1]]}</span></a></li>`).join("")}</ul></div>`:""}
+  ${d.items.length&&!d.crit&&w<15?`<div class="sec"><h3>How class runs</h3><ol><li>Review of last week's lab, from the quiz results and what came up in it.</li><li>The topic, short, with one thing to try yourself.</li><li>The lab, started in class with the TAs nearby.</li></ol></div>`:""}
+  ${L&&L.feeds?`<div class="sec"><h3>Where it goes</h3><p>${esc(L.feeds)}</p></div>`:""}`;
 }
-const SECTIONS={
-  lecture:[["Introduction","Short framing of the topic and why it matters to your project."],["Key ideas","Diagrams and figures from the course library, with credit."],["Further reading","Links to pages in the private library (opens with your key)."]],
-  lab:[["Introduction","What this lab teaches and how it feeds the module assignment."],["Learn","Interactive part: change an input, see the design effect."],["Core check","Auto-checked questions."],["Apply","Sizing and calculation on your project."],["Open move","One design move of your own."],["Further reading","Links to pages in the private library."],["Submit","Upload and peer review."]],
-  quiz:[["Instructions","What to do, and how it is graded."],["Quiz","One attempt. You'll see your score and topics to review; answers open after the due date."]],
-  assign:[["Brief","What you and your studio partner hand in."],["Steps","Labs that build into this assignment."],["Rubric","How it is graded."],["Submit","Draft, peer review, final."]],
-  crit:[["Schedule","Peer review and small-group crit times."],["Peer review","Who you review and the review form."]],
-  folio:[["What to hand in","Lab spreads plus assignment spreads, per module."],["Checklist","Final folio check."]],
-};
+const OPENMOVE=`<p>Each lab ends with one move of your own: about 150 words and one drawing or number, worth 30 points. It is scored on a single-point rubric with five criteria.</p>
+<ul><li><b>Claim:</b> one design move, stated in one sentence.</li><li><b>Evidence:</b> a drawing, a number or a book value that backs it.</li><li><b>Tie:</b> which A01, A02 or A03 piece it changes.</li><li><b>Trade-off:</b> what the move costs or risks.</li><li><b>Clarity:</b> readable at pin-up distance, labels in plain words.</li></ul>
+<p>Meeting all five earns 24 of 30. Each criterion you push beyond earns up to 2 more, and each concern costs up to 4.</p>`;
+const PEER=`<p>You review two classmates' spreads. Score the rubric first, then write three lines, each starting from one of these:</p>
+<ul><li>“The move I read is ___. I wasn't sure whether you meant ___.”</li><li>“Your ___ convinced me. I'd believe it more with ___.”</li><li>“This changes your ___ in A0_ by ___.”</li><li>“What this could cost you is ___. Have you checked ___?”</li><li>“From across the room I could read ___; I lost ___.”</li></ul>`;
+const PINUP=w=>`<p>You pin up in groups of six, with one critic leading each group. Everyone works from a pin-up card with three prompts, and critics write a short note on the card before they speak, so every review is heard.</p><p>Peers score your spread on the ${esc(W[w].crit)} rubric; the TA collects the cards and returns them with your score.</p>`;
+function itemSections(w,k,it){const L=it[3]||{};
+  const sec=(h,body)=>`<div class="sec"><h3>${h}</h3>${body}</div>`;const p=t=>`<p>${esc(t)}</p>`;
+  if(k==="lab"){let h="";
+    if(L.why)h+=sec("Why this matters",p(L.why));
+    if(L.concept)h+=sec("The idea",p(L.concept));
+    if(L.example)h+=sec("Worked example",p(L.example)+`<p class="note">We work this together in class before you try your own.</p>`);
+    if(L.learn)h+=sec("In class",p(L.learn));
+    if(L.build)h+=sec("What you hand in",p(L.build)+`<p>One 11x17 spread, uploaded as a PDF.</p>`);
+    h+=sec("Open move",OPENMOVE);
+    h+=sec("Peer review",PEER);
+    if(L.feeds)h+=sec("Where it goes",p(L.feeds));
+    if(L.read)h+=sec("Further reading",p(L.read)+`<p class="note">Pages open from the course library once you've entered your key.</p>`);
+    return h;}
+  if(k==="lecture")return sec("Introduction",p(W[w].summary[0]))+sec("How it runs",`<p>A short talk with figures from the course library, credited, and one question to answer on your own before the lab starts.</p>`)+(W[w].items.find(x=>x[0]==="lab")&&W[w].items.find(x=>x[0]==="lab")[3]&&W[w].items.find(x=>x[0]==="lab")[3].read?sec("Reading",p(W[w].items.find(x=>x[0]==="lab")[3].read)):"");
+  if(k==="class")return sec("What we do",p(W[w].summary[1]||W[w].summary[0]));
+  if(k==="quiz"&&w===2)return sec("How it works",`<p>Quiz 1 is a trial run. You run the Climate Reader on the city you were assigned, export the PDF checklist, and upload it. It opens Friday at 9 AM and is due Sunday at 11:59 PM.</p>`);
+  if(k==="quiz")return sec("How it works",`<p>The quiz opens Friday at 9 AM and is due Sunday at 11:59 PM. You get one attempt. Each question is set on the case building, has three options, and asks you how sure you are.</p><p>Where a question asks for a number, your numbers differ from your classmates'. After the due date the questions are checked and approved, and on Wednesday you see your score with a reason for every option.</p>`)+sec("Quiz",``);
+  if(k==="crit")return sec("Format",PINUP(w));
+  if(k==="assign"){if(/draft session/.test(it[2]))return sec("What happens",`<p>Studio time to pull your lab spreads into the assignment draft, with the TAs reading over your shoulder. Bring your spreads and your latest plans.</p>`);
+    return sec("Brief",`<p>Each assignment is written as a purpose, a task and the criteria it is scored on, with one example sheet and a single-point rubric with a “beyond” column.</p><p>You score your own sheets before submitting, and a peer scores them at the pin-up.</p><p class="note">Sheet and word limits: to be set by the instructor.</p>`)+sec("Built from","<p>"+esc({A01:"Labs 1, 2 and 3: climate, zoning and program, massing for sun and daylight.",A02:"Labs 4, 5 and 6: envelope, structure and MEP in section.",A03:"Labs 7 and 8: occupancy, egress and access, the plan check, and your details and mockup."}[it[2].slice(0,3)]||"")+"</p>");}
+  if(k==="folio")return sec("What to hand in",`<p>Each module is one chapter: its lab spreads, then its assignment, revised where the crits asked.</p>`)+sec("Scoring",`<p>You score your folio on the single-point rubric first. Two classmates score it next, and the instructor or TA confirms the score.</p>`);
+  return "";
+}
 const SPECIAL={
-  "wk-2-1":`<div class="tool"><p><b>Climate Reader</b> · read Denver's climate, guess, reveal, pick strategies, export your climate kit.</p><a class="btn" href="climate-reader/index.html" target="_blank" rel="noopener">Open tool</a></div><p class="ph">Full student page is in draft in the Course Map.</p>`,
-  "wk-2-2":`<div class="tool"><p><b>Climate Reader</b> · run it on your assigned city, then export the PDF checklist and upload it.</p><a class="btn" href="climate-reader/index.html" target="_blank" rel="noopener">Open tool</a></div><p class="ph">Full student page is in draft in the Course Map.</p>`,
+  "wk-2-1":`<div class="tool"><p><b>Climate Reader</b> · read Denver's climate, guess, reveal, pick strategies, export your climate kit.</p><a class="btn" href="climate-reader/index.html" target="_blank" rel="noopener">Open tool<span class="sr"> (opens in a new tab)</span></a></div>`,
+  "wk-2-2":`<div class="tool"><p><b>Climate Reader</b> · run it on your assigned city, then export the PDF checklist and upload it.</p><a class="btn" href="climate-reader/index.html" target="_blank" rel="noopener">Open tool<span class="sr"> (opens in a new tab)</span></a></div>`,
 };
 function itemPage(w,i){const d=W[w];const it=d&&d.items[i];if(!it)return home();
   const[k,s,t]=it;const K=KINDS[k];const dd=dueFor(w,k);
-  return `<nav class="crumb"><a href="#home">Course</a>/<a href="#wk-${w}">Week ${w}</a>/<span>${K.label}</span></nav>
-  <div class="page-head" style="--c:var(${K.c})"><span class="kind">${K.label} · Week ${String(w).padStart(2,"0")}</span><h2>${esc(t)}</h2><span class="status ${s}">${S[s]}</span></div>
-  <dl class="dates">${Object.entries(dd).map(([a,b])=>`<div><dt>${LBL[a]}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
+  return `<nav class="crumb" aria-label="Breadcrumb"><a href="#home">Course</a>/<a href="#wk-${w}">Week ${w}</a>/<span>${K.label}</span></nav>
+  <div class="page-head" style="--c:var(${K.c})"><span class="kind">${K.label} · Week ${pad(w)}</span><h2 tabindex="-1">${esc(t)}</h2><span class="status ${s}">${S[s]}</span></div>
+  <dl class="dates" style="--c:var(${K.c})">${Object.entries(dd).map(([a,b])=>`<div><dt>${LBL[a]}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
   ${SPECIAL[slug(w,i)]||""}
-  ${(SECTIONS[k]||[]).map(([h,p])=>`<div class="sec"><h3>${h}</h3><p class="ph">${p}</p></div>`).join("")}`;
+  ${itemSections(w,k,it)}`;
 }
 /* ---------- Course database (Supabase). Every call goes through a database function; tables are closed. ---------- */
 const CFG=window.ARCH6171_CONFIG||{};
@@ -233,7 +424,7 @@ function paintWho(){
   if(!DB_ON){f.hidden=false;who.hidden=true;return;}
   inp.disabled=false;btn.disabled=false;note.textContent="Your key stays with you all semester.";
   if(ME){f.hidden=true;who.hidden=false;
-    who.innerHTML=`<span class="code">KEY</span><b>${esc(ME.label)}</b><a href="#me">My progress</a>${ME.role!=="student"?`<a href="#admin">${ME.role==="admin"?"Admin":"TA"}</a>`:""}<button class="linkbtn" id="signout" type="button">Sign out</button>`;
+    who.innerHTML=`<span class="label">Key</span><b>${esc(ME.label)}</b><a href="#me">My progress</a>${ME.role!=="student"?`<a href="#admin">${ME.role==="admin"?"Admin":"TA"}</a>`:""}<button class="linkbtn" id="signout" type="button">Sign out</button>`;
     document.getElementById("signout").onclick=()=>{ME=null;KEY="";store.set("");paintWho();route();};
   } else {f.hidden=false;who.hidden=true;}
 }
@@ -247,50 +438,113 @@ document.getElementById("keyForm").addEventListener("submit",e=>{e.preventDefaul
 function needKey(){return DB_ON?`<p class="msg">Enter your access key at the top of the page to open this.</p>`:`<p class="msg">This opens once the course database is set up.</p>`;}
 
 /* ---------- Quiz ---------- */
+const dt=s=>s?new Date(s).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+const showAns=v=>v==null?"(blank)":typeof v==="object"?(Array.isArray(v)?v.join(", "):(v.num!=null?(+(+v.num).toFixed(2))+(+v.tol?" ± "+(+(+v.tol).toFixed(2)):""):v.formula?"Formula: "+v.formula:JSON.stringify(v))):String(v);
 async function mountQuiz(el,quizId){
   if(!ME){el.innerHTML=needKey();return;}
   el.innerHTML=`<p class="msg">Loading…</p>`;
   let q; try{q=await rpc("get_quiz",{p_code:KEY,p_quiz:quizId});}
   catch(e){el.innerHTML=`<p class="msg">${/No such quiz/.test(e.message)?"This quiz isn't open yet.":esc(e.message)}</p>`;return;}
-  const due=new Date(q.due_at).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+  const due=dt(q.due_at);
   if(q.submitted){
-    el.innerHTML=`<div class="panel"><span class="kind">Submitted</span><div class="score">${q.score} / ${q.max_score}</div>
+    if(!q.released&&ME.role==="student"){el.innerHTML=`<div class="panel"><span class="kind">Submitted</span><p>Your answers are in${q.late?", marked late":""}. Your score and the answers, with a reason for every option, appear here once results are released, usually the Wednesday after the due date.</p></div>`;return;}
+    el.innerHTML=`<div class="panel"><span class="kind">${q.released?"Results":"Submitted"}</span><div class="score">${q.score} / ${q.max_score}</div>
+      ${q.late?`<p class="msg">Marked late.</p>`:""}
       ${q.missed_topics&&q.missed_topics.length?`<p>Topics to review: <b>${q.missed_topics.map(esc).join(", ")}</b></p>`:`<p class="ok">Nothing to review.</p>`}
-      ${q.answers_open?`<button class="btn" id="rev" type="button">See the answers</button><div id="revOut"></div>`:`<p class="msg">Correct answers open after the due date, ${esc(due)}.</p>`}</div>`;
-    const b=el.querySelector("#rev"); if(b) b.onclick=()=>showReview(el.querySelector("#revOut"),quizId);
+      <button class="btn" id="rev" type="button">See the answers</button><div id="revOut" aria-live="polite"></div></div>`;
+    el.querySelector("#rev").onclick=()=>showReview(el.querySelector("#revOut"),quizId);
     return;
   }
+  if(q.closed&&ME.role==="student"){el.innerHTML=`<div class="panel"><p>${q.released?"Results for this quiz are out, so it is closed.":"The late window for this quiz has closed."} If something kept you from it, write to your instructor.</p></div>`;return;}
+  const late=new Date()>new Date(q.due_at);
   const qs=q.questions||[];
-  el.innerHTML=`<div class="panel"><p class="msg">Due ${esc(due)}. One attempt: once you submit, it locks.</p>
-    <form id="qf">${qs.map((it,i)=>`<div class="q"><div class="prompt">${i+1}. ${esc(it.prompt)}</div>${
+  el.innerHTML=`<div class="panel"><p class="msg">Due ${esc(due)}. One attempt: once you submit, it locks.${late?` <b>It is past the due date, so this will be marked late${q.late_penalty_pct!=null?` and lose ${q.late_penalty_pct}% per late day`:""}.</b>`:""}${q.late_close_at?` Late work closes ${esc(dt(q.late_close_at))}.`:""}</p>
+    <p class="msg">After each question, tap how sure you are. It doesn't change your score; it shows which ideas need another look.</p>
+    <form id="qf">${qs.map((it,i)=>`<fieldset class="q"><legend>${i+1}. ${esc(it.prompt)}</legend>${
       it.options?it.options.map(o=>`<label><input type="${it.multi?"checkbox":"radio"}" name="${esc(it.id)}" value="${esc(o)}"> ${esc(o)}</label>`).join("")
-      :`<input type="text" name="${esc(it.id)}" inputmode="${it.text?"text":"decimal"}" autocomplete="off">`}</div>`).join("")}
-    <button class="btn" type="submit">Submit quiz</button> <span class="msg" id="qmsg"></span></form>${ME.role!=="student"?`<p class="msg">You're signed in as ${esc(ME.role.toUpperCase())}, so you can look but not submit.</p>`:""}</div>`;
-  el.querySelector("#qf").onsubmit=async e=>{e.preventDefault();const f=e.target,ans={};
+      :`<input type="text" name="${esc(it.id)}" inputmode="${it.text?"text":"decimal"}" autocomplete="off" aria-label="Answer to question ${i+1}">`}
+      <div class="sure" role="radiogroup" aria-label="How sure are you about question ${i+1}?"><span class="label">How sure?</span><label><input type="radio" name="sure-${esc(it.id)}" value="1"> Sure</label><label><input type="radio" name="sure-${esc(it.id)}" value="0"> Not sure</label></div></fieldset>`).join("")}
+    <div id="qconfirm"></div>
+    <button class="btn" type="submit">Submit quiz</button> <span class="msg" id="qmsg" aria-live="polite"></span></form>${ME.role!=="student"?`<p class="msg">You're signed in as ${esc(ME.role.toUpperCase())}, so you can look but not submit.</p>`:""}</div>`;
+  const f=el.querySelector("#qf");let armed=false;
+  f.onsubmit=async e=>{e.preventDefault();const ans={},sure={};
     for(const it of qs){
       if(it.options&&it.multi) ans[it.id]=[...f.querySelectorAll(`input[name="${CSS.escape(it.id)}"]:checked`)].map(x=>x.value);
       else if(it.options){const c=f.querySelector(`input[name="${CSS.escape(it.id)}"]:checked`);if(c)ans[it.id]=c.value;}
       else {const v=f.elements[it.id].value.trim();if(v)ans[it.id]=v;}
+      const s=f.querySelector(`input[name="${CSS.escape("sure-"+it.id)}"]:checked`);if(s)sure[it.id]=s.value==="1";
     }
     const blank=qs.length-Object.keys(ans).filter(k=>!(Array.isArray(ans[k])&&!ans[k].length)).length;
-    if(!confirm((blank?`${blank} question${blank>1?"s are":" is"} blank. `:"")+"You get one attempt. Submit now?"))return;
-    f.querySelector("button").disabled=true;
-    try{await rpc("submit_quiz",{p_code:KEY,p_quiz:quizId,p_answers:ans});mountQuiz(el,quizId);}
-    catch(err){f.querySelector("button").disabled=false;document.getElementById("qmsg").innerHTML=`<span class="err">${esc(err.message)}</span>`;}
+    const box=el.querySelector("#qconfirm");
+    if(!armed){armed=true;box.innerHTML=`<p class="panel" role="alert">${blank?`${blank} question${blank>1?"s are":" is"} blank. `:""}You get one attempt. Press <b>Submit quiz</b> again to hand it in.</p>`;f.querySelector("button[type=submit]").focus();return;}
+    f.querySelector("button[type=submit]").disabled=true;
+    try{await rpc("submit_quiz",{p_code:KEY,p_quiz:quizId,p_answers:ans,p_sure:sure});mountQuiz(el,quizId);}
+    catch(err){f.querySelector("button[type=submit]").disabled=false;armed=false;box.innerHTML="";document.getElementById("qmsg").innerHTML=`<span class="err">${esc(err.message)}</span>`;}
   };
 }
+function reviewItem(it,i){
+  const opts=it.options||null,rs=it.reasons||[],key=it.key;
+  const right=v=>key!=null&&(String(showAns(key)).toLowerCase()===String(v).toLowerCase()||(it.accepted||[]).some(a=>a.toLowerCase()===String(v).toLowerCase()));
+  return `<li class="rv"><p><b>${i+1}. ${esc(it.prompt)}</b>${it.dropped?` <span class="status">Dropped for everyone</span>`:""}</p>
+    ${opts?`<ul class="opts">${opts.map((o,j)=>`<li class="${right(o)?"is-right":""}${String(it.yours)===o?" is-yours":""}"><span>${right(o)?"✓ ":""}${esc(o)}${String(it.yours)===o?" <i>(your answer)</i>":""}</span>${rs[j]?`<span class="why">${esc(rs[j])}</span>`:""}</li>`).join("")}</ul>`
+      :`<p>Your answer: <b>${esc(showAns(it.yours))}</b>. Answer: <b>${esc(showAns(key))}</b>.</p>`}
+    <p class="msg">${it.ok?`<span class="ok">Right.</span>`:"Not right."}${it.sure===true?" You marked it sure.":it.sure===false?" You marked it not sure.":""}</p>
+    ${it.note?`<p class="note"><b>Note from your instructor:</b> ${esc(it.note)}</p>`:""}</li>`;
+}
 async function showReview(out,quizId){
-  try{const r=await rpc("review_quiz",{p_code:KEY,p_quiz:quizId});const yours=r.your_answers||{},key=r.answer_key||{};
-    const show=v=>v==null?"(blank)":typeof v==="object"?(Array.isArray(v)?v.join(", "):(v.num+(v.tol?" ± "+v.tol:""))):String(v);
-    out.innerHTML=`<table class="t"><tr><th>#</th><th>Your answer</th><th>Answer</th></tr>${(r.questions||[]).map((it,i)=>`<tr><td>${i+1}</td><td>${esc(show(yours[it.id]))}</td><td>${esc(show(key[it.id]))}</td></tr>`).join("")}</table>`;
+  try{const r=await rpc("review_quiz",{p_code:KEY,p_quiz:quizId});
+    out.innerHTML=`<ol class="review">${(r.items||[]).map(reviewItem).join("")}</ol>`;
   }catch(e){out.innerHTML=`<p class="err">${esc(e.message)}</p>`;}
+}
+
+/* ---------- Question check and release (TA sees, admin acts) ---------- */
+async function mountCheck(el,quizId){
+  if(!ME){el.innerHTML=needKey();return;}
+  if(ME.role==="student"){el.innerHTML=`<p class="msg">This page is for the instructor and TA.</p>`;return;}
+  const admin=ME.role==="admin";
+  el.innerHTML=`<p class="msg">Loading…</p>`;
+  let c;try{c=await rpc("quiz_check",{p_code:KEY,p_quiz:quizId});}catch(e){el.innerHTML=`<p class="err">${esc(e.message)}</p>`;return;}
+  const Q=c.quiz,flags=c.items.filter(x=>x.flag).length;
+  const rel=!!Q.released_at;
+  el.innerHTML=`<dl class="dates"><div><dt>Opened</dt><dd>${esc(dt(Q.opens_at)||"Any time")}</dd></div><div><dt>Due</dt><dd>${esc(dt(Q.due_at))}</dd></div><div><dt>Late closes</dt><dd>${esc(dt(Q.late_close_at)||"Not set")}</dd></div><div><dt>Late rule</dt><dd>${Q.late_penalty_pct!=null?Q.late_penalty_pct+"% per day":"Not set (flag only)"}</dd></div></dl>
+  <div class="panel"><p><b>${c.submissions}</b> submitted · mean <b>${c.mean??"–"}</b> · <b>${flags}</b> question${flags===1?"":"s"} under 40% right.</p>
+    ${rel?`<p class="ok">Released ${esc(dt(Q.released_at))}. Students can see scores and answers.</p>`:`<p>Not released. Students see nothing until the admin presses release.</p>`}
+    ${admin?`<div><button class="btn" id="bRel" type="button">${rel?"Take results back":"Release results"}</button> <span class="msg" id="relMsg" aria-live="polite"></span></div>`:`<p class="msg">Only the admin key can regrade or release. Flag anything odd to your instructor.</p>`}</div>
+  <ol class="check">${c.items.map((it,i)=>`<li class="panel${it.flag?" flag":""}" id="ck-${esc(it.id)}">
+    <p><b>${i+1}. ${esc(it.prompt)}</b>${it.topic?` <span class="label">· ${esc(it.topic)}</span>`:""}${it.varies?` <span class="label">· numbers vary per student</span>`:""}</p>
+    <p>${it.pct_right??"–"}% right (${it.right} of ${c.submissions}) · ${it.sure_wrong} sure but wrong · ${it.unsure_right} right but not sure${it.flag?` · <b class="err">Under 40%</b>`:""}</p>
+    <p class="msg">Answer: ${esc(showAns(it.key))}${it.regrade&&it.regrade.accept?` · also accepted: ${esc(it.regrade.accept.join(", "))}`:""}${it.regrade&&it.regrade.drop?` · <b>dropped</b>`:""}</p>
+    ${Object.keys(it.spread||{}).length?`<div class="tw"><table class="t"><tr><th>Answer</th><th>Count</th></tr>${Object.entries(it.spread).sort((a,b)=>b[1]-a[1]).map(([a,n])=>`<tr><td>${esc(a)}</td><td class="mono">${n}</td></tr>`).join("")}</table></div>`:""}
+    ${it.reasons?`<details><summary>Reasons students see</summary><ul>${(it.options||[]).map((o,j)=>`<li><b>${esc(o)}:</b> ${esc(it.reasons[j]||"(missing)")}</li>`).join("")}</ul></details>`:it.options?`<p class="err">No reasons written for this question.</p>`:""}
+    ${admin?`<div class="rg"><label>Note students see <input type="text" data-note value="${esc(it.regrade&&it.regrade.note||"")}"></label>
+      <div class="rgb">${it.options?`<label>Also accept <select data-acc>${it.options.map(o=>`<option>${esc(o)}</option>`).join("")}</select></label><button class="btn" type="button" data-act="accept">Accept</button>`:`<label>Also accept <input type="text" data-acc></label><button class="btn" type="button" data-act="accept">Accept</button>`}
+      <button class="btn" type="button" data-act="${it.regrade&&it.regrade.drop?"undrop":"drop"}">${it.regrade&&it.regrade.drop?"Put back":"Drop question"}</button>
+      <button class="btn" type="button" data-act="note">Save note</button>${it.regrade?`<button class="linkbtn" type="button" data-act="clear">Undo regrade</button>`:""}</div>
+      <span class="msg" data-msg aria-live="polite"></span></div>`:""}
+  </li>`).join("")}</ol>`;
+  if(!admin)return;
+  let armed=false;
+  el.querySelector("#bRel").onclick=async()=>{const m=el.querySelector("#relMsg");
+    if(!armed){armed=true;m.innerHTML=rel?"Press again to hide scores and answers from students.":`${flags?`<b>${flags} question${flags>1?"s are":" is"} under 40%.</b> `:""}Press again to release scores and answers to every student.`;return;}
+    try{await rpc("release_quiz",{p_code:KEY,p_quiz:quizId,p_release:!rel});mountCheck(el,quizId);}catch(e){m.innerHTML=`<span class="err">${esc(e.message)}</span>`;}};
+  el.querySelectorAll("li.check, ol.check>li").forEach(li=>{const id=li.id.slice(3);
+    li.querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const m=li.querySelector("[data-msg]");
+      const act=b.dataset.act,acc=li.querySelector("[data-acc]"),note=li.querySelector("[data-note]").value.trim();
+      try{await rpc("regrade_quiz",{p_code:KEY,p_quiz:quizId,p_item:id,p_action:act,p_value:act==="accept"&&acc?acc.value:null,p_note:act==="clear"?null:(note||null)});
+        await mountCheck(el,quizId);const n=document.getElementById("ck-"+id);if(n){n.scrollIntoView({block:"center"});const mm=n.querySelector("[data-msg]");if(mm)mm.textContent="Saved and every score recalculated.";}}
+      catch(e){m.innerHTML=`<span class="err">${esc(e.message)}</span>`;}});});
+}
+async function quizListPanel(el){
+  try{const L=await rpc("list_quizzes",{p_code:KEY});
+    el.innerHTML=L.length?`<div class="tw"><table class="t"><tr><th>Quiz</th><th>Due</th><th>In</th><th>Status</th></tr>${L.map(q=>`<tr><td><a href="#check-${esc(q.id)}">${esc(q.title)}</a></td><td>${esc(dt(q.due_at))}</td><td class="mono">${q.submissions}</td><td>${q.released_at?"Released":new Date()>new Date(q.due_at)?"<b>Waiting for check and release</b>":"Open or upcoming"}</td></tr>`).join("")}</table></div>`:`<p class="msg">No quizzes yet.</p>`;
+  }catch(e){el.innerHTML=`<p class="err">${esc(e.message)}</p>`;}
 }
 
 /* ---------- My progress ---------- */
 async function mountMe(el){
   if(!ME){el.innerHTML=needKey();return;}
   try{const p=await rpc("my_progress",{p_code:KEY});
-    el.innerHTML=`<div class="panel"><h3>Quizzes</h3>${p.quizzes.length?`<table class="t"><tr><th>Quiz</th><th>Score</th><th>Submitted</th></tr>${p.quizzes.map(q=>`<tr><td>${esc(q.title)}</td><td class="mono">${q.score} / ${q.max_score}</td><td>${esc(new Date(q.submitted_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}))}${q.late?" · late":""}</td></tr>`).join("")}</table>`:`<p class="msg">No quizzes submitted yet.</p>`}</div>
+    el.innerHTML=`<div class="panel"><h3>Quizzes</h3>${p.quizzes.length?`<div class="tw"><table class="t"><tr><th>Quiz</th><th>Score</th><th>Submitted</th></tr>${p.quizzes.map(q=>`<tr><td>${esc(q.title)}</td><td class="mono">${q.released?`${q.score} / ${q.max_score}`:"After release"}</td><td>${esc(new Date(q.submitted_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}))}${q.late?" · late":""}</td></tr>`).join("")}</table></div>`:`<p class="msg">No quizzes submitted yet.</p>`}</div>
     <div class="panel"><h3>Labs and tools</h3>${p.items.length?`<table class="t"><tr><th>Item</th><th>Status</th></tr>${p.items.map(i=>`<tr><td>${esc(i.item_id)}</td><td>${esc(i.status)}</td></tr>`).join("")}</table>`:`<p class="msg">Nothing saved yet.</p>`}</div>`;
   }catch(e){el.innerHTML=`<p class="err">${esc(e.message)}</p>`;}
 }
@@ -312,6 +566,7 @@ async function mountAdmin(el){
   if(ME.role==="student"){el.innerHTML=`<p class="msg">This page is for the instructor and TA.</p>`;return;}
   const admin=ME.role==="admin";
   el.innerHTML=`
+  <div class="panel"><h3>Quiz check and release</h3><p class="msg">Each quiz closes Sunday night. Open it here to see how every question did, regrade what needs it, then release. Nothing reaches students until the admin releases.</p><div id="qList"><p class="msg">Loading…</p></div></div>
   <div class="panel"><h3>Grades for Canvas</h3>
     <p class="msg">Pick two files from your computer. They're read here in your browser and never uploaded.</p>
     <label>1. Your key list (the CSV from “Make keys”, with the canvas_id column filled in) <input type="file" id="fRoster" accept=".csv"></label>
@@ -322,9 +577,10 @@ async function mountAdmin(el){
     <p class="msg">Labels only, no names. Use a range like S01-S44, or a list. Each key is shown once, so download the list and keep it private.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="kRole"><option value="student">Students</option><option value="ta">TA</option><option value="admin">Admin</option></select><input type="text" id="kLabels" placeholder="S01-S44"><button class="btn" id="bKeys" type="button">Make keys</button></div>
     <div id="kOut"></div></div>
-  <div class="panel"><h3>Add or replace a quiz</h3><p class="msg">Paste quiz text from Claude.</p><textarea id="qJson" spellcheck="false"></textarea><div><button class="btn" id="bQuiz" type="button">Save quiz</button> <span class="msg" id="qMsg"></span></div></div>
+  <div class="panel"><h3>Add or replace a quiz</h3><p class="msg">Paste quiz text from Claude. Saving checks it against the item rules (three options, a reason for each, no negative wording) and lists anything that breaks them.</p><textarea id="qJson" spellcheck="false"></textarea><div><button class="btn" id="bQuiz" type="button">Save quiz</button> <span class="msg" id="qMsg"></span></div></div>
   <div class="panel"><h3>Weekly backup</h3><p class="msg">Downloads everything as one file. Labels only, no keys.</p><div><button class="btn" id="bBackup" type="button">Download backup</button> <span class="msg" id="bMsg"></span></div></div>
   <div class="panel"><h3>Test the quiz lock</h3><p class="msg">Make a student key labelled TEST, sign in with it, and try the <a href="#quiz-practice">practice quiz</a> twice.</p></div>`:""}`;
+  quizListPanel(el.querySelector("#qList"));
   const gMsg=el.querySelector("#gMsg");
   const getGrades=async()=>{const g=await rpc("grades",{p_code:KEY});if(!g.length)throw new Error("No quiz scores yet.");return g;};
   el.querySelector("#bPlain").onclick=async()=>{try{const g=await getGrades();const quizzes=[...new Set(g.map(r=>r.quiz_id))],by={};
@@ -365,7 +621,7 @@ async function mountAdmin(el){
     }catch(e){out.innerHTML=`<p class="err">${esc(/duplicate|unique/i.test(e.message)?"One of those labels already has a key.":e.message)}</p>`;}};
   el.querySelector("#bQuiz").onclick=async()=>{const m=el.querySelector("#qMsg");try{const q=JSON.parse(el.querySelector("#qJson").value);
       if(!q.id||!q.title||!q.due_at)throw new Error("Needs id, title and due_at.");
-      await rpc("upsert_quiz",{p_code:KEY,p_quiz:q});m.innerHTML=`<span class="ok">Saved ${esc(q.id)}.</span>`;}
+      const res=await rpc("upsert_quiz",{p_code:KEY,p_quiz:q});const w=(res&&res.warnings)||[];m.innerHTML=`<span class="ok">Saved ${esc(q.id)}.</span>`+(w.length?` <span class="err">Check: ${w.map(esc).join("; ")}.</span>`:"");quizListPanel(el.querySelector("#qList"));}
     catch(e){m.innerHTML=`<span class="err">${esc(e instanceof SyntaxError?"That isn't valid quiz text.":e.message)}</span>`;}};
   el.querySelector("#bBackup").onclick=async()=>{const m=el.querySelector("#bMsg");try{const b=await rpc("backup",{p_code:KEY});
       download(`arch6171-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(b,null,1),"application/json");m.textContent="Downloaded.";}
@@ -379,12 +635,17 @@ function route(){const h=(location.hash||"#home").slice(1);let m;
     if(it&&it[0]==="quiz"){const box=[...v.querySelectorAll(".sec")].find(s=>/^Quiz$/.test(s.querySelector("h3").textContent));
       if(box){const d=document.createElement("div");box.appendChild(d);mountQuiz(d,quizIdFor(+m[1]));}}}
   else if(m=h.match(/^wk-(\d+)$/)) v.innerHTML=weekPage(+m[1]);
-  else if(h==="me"){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>My progress</span></nav><div class="page-head"><span class="kind">${ME?esc(ME.label):"Progress"}</span><h2>My progress</h2></div><div id="m"></div>`;mountMe(v.querySelector("#m"));}
-  else if(h==="admin"){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>Admin</span></nav><div class="page-head"><span class="kind">Instructor and TA</span><h2>Course tools</h2></div><div id="a"></div>`;mountAdmin(v.querySelector("#a"));}
-  else if(m=h.match(/^quiz-([\w-]+)$/)){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>Quiz</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Quiz</span><h2>${esc(m[1]==="practice"?"Practice quiz":m[1])}</h2></div><div id="qz"></div>`;mountQuiz(v.querySelector("#qz"),m[1]);}
+  else if(h==="me"){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>My progress</span></nav><div class="page-head"><span class="kind">${ME?esc(ME.label):"Progress"}</span><h2 tabindex="-1">My progress</h2></div><div id="m"></div>`;mountMe(v.querySelector("#m"));}
+  else if(h==="admin"){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>Admin</span></nav><div class="page-head"><span class="kind">Instructor and TA</span><h2 tabindex="-1">Course tools</h2></div><div id="a"></div>`;mountAdmin(v.querySelector("#a"));}
+  else if(m=h.match(/^check-([\w-]+)$/)){v.innerHTML=`<nav class="crumb" aria-label="Breadcrumb"><a href="#home">Course</a>/<a href="#admin">Admin</a>/<span>Question check</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Question check</span><h2 tabindex="-1">${esc(m[1])}</h2></div><div id="ck"></div>`;mountCheck(v.querySelector("#ck"),m[1]);}
+  else if(m=h.match(/^quiz-([\w-]+)$/)){v.innerHTML=`<nav class="crumb"><a href="#home">Course</a>/<span>Quiz</span></nav><div class="page-head" style="--c:var(--c-quiz)"><span class="kind">Quiz</span><h2 tabindex="-1">${esc(m[1]==="practice"?"Practice quiz":m[1])}</h2></div><div id="qz"></div>`;mountQuiz(v.querySelector("#qz"),m[1]);}
   else v.innerHTML=home();
   window.scrollTo(0,0);
+  if(FIRST){FIRST=false;return;}
+  const hd=v.querySelector("h2[tabindex]");(hd||v).focus({preventScroll:true});
+  document.title=(hd?hd.textContent+" · ":"")+"ARCH 6171 Integration Seminar";
 }
+let FIRST=true;
 addEventListener("hashchange",route);
 paintWho();route();
 if(DB_ON&&KEY) signIn(KEY);
